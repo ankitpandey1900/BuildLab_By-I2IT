@@ -1,106 +1,109 @@
 # BuildLab by I2IT
 
-BuildLab is the official open-source campus engineering and developer collaboration platform for Hope Foundation's International Institute of Information Technology (I2IT), Pune.
+BuildLab is the official open-source campus engineering and developer collaboration platform for **Hope Foundation's International Institute of Information Technology (I2IT), Pune**.
 
 Students and faculty discover repositories, pitch solutions to maintainer problems, request institutional sponsorship, collaborate with 1-on-1 mentor guidance, and earn verified engineering contribution records anchored to college PRNs.
 
 GitHub remains the source of truth for repositories, issues, pull requests, and commits. BuildLab is the campus-wide community layer connecting students, maintainers, and faculty.
 
-## Current development phase
+---
 
-We are in **Phase 1 — identity and access**. Accounts, sessions, verified I2IT enrollment and protected profile/project APIs are now being built underneath the existing explorer.
+## What We Have Built
 
-The delivery plan is in [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md).
+1. **Campus-Wide Project Catalog:** Search and filter active projects across the 3 engineering departments (*Computer Engineering*, *Information Technology*, and *Electronics & Telecommunication*).
+2. **Campus Identity Verification Gate:** Dual accreditation system verifying students by University PRN + Roll Number, and faculty by College Employee Code + Academic Designation.
+3. **Admin Verification Desk:** Dedicated queue for community leads to review, approve, or request revisions on campus credentials.
+4. **Structured Collaboration Pitching:** Direct role and task proposals sent to project maintainers without chaotic WhatsApp or LinkedIn DMs.
+5. **1-on-1 Mentor Consultation Chat:** Topic-focused technical advice from project leads and faculty mentors.
+6. **Community Support Workspace:** Formal sponsorship and review workflow for projects seeking college GitHub Organization placement.
 
-## Prerequisites
+---
 
-- Node.js 20 or later
-- PostgreSQL 16 or later
-- npm 10 or later
+## Tech Stack
 
-## Local setup
+- **Framework:** Next.js 16.4 (App Router, Turbopack, React 19)
+- **Database:** PostgreSQL 16 on Supabase
+- **ORM:** Prisma 6.19 Client
+- **Type Safety:** TypeScript 5.7 (strict mode)
+- **Styling:** Tailwind CSS 3.4 with custom Linear-inspired design tokens
+- **Auth:** Better Auth with GitHub OAuth and local dev bypass
 
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. Copy `.env.example` to `.env.local` and set the values. Never commit this file.
-
-3. Create the local PostgreSQL database named `college_dev` (or change `DATABASE_URL`).
-
-4. Generate the database client and apply migrations:
-
-   ```bash
-   npm run db:generate
-   npm run db:migrate
-   npm run db:seed
-   ```
-
-5. Start the app:
-
-   ```bash
-   npm run dev
-   ```
-
-   Open `http://localhost:3000`.
-
-## Useful commands
-
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the local development server |
-| `npm run typecheck` | Run TypeScript checks without emitting files |
-| `npm run build` | Create the production build |
-| `npm run db:generate` | Generate Prisma client code |
-| `npm run db:migrate` | Create/apply a local database migration |
-| `npm run db:seed` | Seed local demo records only |
-| `npm run db:studio` | Open Prisma Studio for local inspection |
-
-## Environment variables
-
-| Variable | Required locally | Why it exists |
-| --- | --- | --- |
-| `BETTER_AUTH_SECRET` | Yes | Encrypts/signs authentication state. Use at least 32 random characters. |
-| `BETTER_AUTH_URL` | Yes | Application origin, normally `http://localhost:3000`. |
-| `DATABASE_URL` | Yes | PostgreSQL connection string. |
-| `DIRECT_URL` | Yes for migrations | Direct/session-mode database URL. With Supabase, use the session pooler on port 5432; use the transaction pooler on port 6543 for `DATABASE_URL`. |
-| `COLLEGE_EMAIL_DOMAIN` | Yes | The permitted college email domain, for example `i2it.ac.in`. |
-| `GITHUB_CLIENT_ID` | Later | Required when GitHub OAuth is enabled. |
-| `GITHUB_CLIENT_SECRET` | Later | Required when GitHub OAuth is enabled. |
-| `GITHUB_WEBHOOK_SECRET` | Later | Required before accepting GitHub webhook events. |
-| `RESEND_API_KEY` | Production | Sends I2IT verification emails through Resend. Without it, development logs the verification URL server-side. |
-| `EMAIL_FROM` | Production | Verified sender address used for verification emails. |
-
-## Safety rules
-
-- `.env.local` must never be committed.
-- Do not use production credentials locally.
-- Database seeds are only for a local machine; no development script should write to a production database.
-- Before Phase 1 is complete, the directory UI still uses demo data. This is intentional and avoids mixing temporary data with real accounts.
-
-## Demo account
-
-After migrations, create the opt-in development account with:
-
-```powershell
-$env:ALLOW_DEMO_SEED='true'; npm run db:seed
+```mermaid
+flowchart LR
+    Browser["Student / Faculty Browser"] -->|HTTPS / TLS 1.3| NextApp["BuildLab Engine (Next.js 16)<br/>App Router & Route Handlers"]
+    NextApp -->|PgBouncer Pooler (Port 6543)| SupabaseDB[("PostgreSQL 16 Cluster<br/>Users, PRNs, Projects, Tasks")]
+    NextApp <-->|OAuth 2.0 & HMAC Webhooks| GitHubAPI["GitHub Platform<br/>Repos, PRs, Commits"]
 ```
 
-Then sign in with `aarav.sharma@<COLLEGE_EMAIL_DOMAIN>` and password `I2ITDemo!2026`. Do not run this against a shared production database.
+---
 
-## Project checks
+## Local Setup
 
-Run these before opening a pull request or moving to the next phase:
+### 1. Prerequisites
+- Node.js 20 or later
+- npm 10 or later
+- PostgreSQL 16 (local instance or Supabase database)
+
+### 2. Clone & Install
+```bash
+git clone https://github.com/ankitpandey1900/OpenSource_Dev_I2it.git
+cd OpenSource_Dev_I2it
+npm install
+```
+
+### 3. Environment Variables
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+Update your `DATABASE_URL` with your PostgreSQL connection string.
+
+### 4. Database Setup
+Generate the Prisma client and push the schema:
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+Optional: Seed demo records for local development:
+```bash
+npm run db:seed
+```
+
+### 5. Start Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## Pre-PR Verification Checks
+
+Before submitting any code changes or opening a pull request, ensure both checks pass:
 
 ```bash
+# TypeScript strict check (must pass with 0 errors)
 npm run typecheck
+
+# Production build check (must exit with code 0)
 npm run build
 ```
 
-The application also exposes:
+---
 
-- `/api/health` — process health only
-- `/api/ready` — configuration readiness without revealing secrets
+## Engineering Documentation
 
+We maintain production-grade engineering documentation following industry standards:
+
+- **[System Architecture Document](./docs/architecture/SYSTEM_ARCHITECTURE.md):** High-level topology, component decomposition, network boundaries, and Mermaid sequence flows.
+- **[System Design Document](./docs/design/SYSTEM_DESIGN.md):** Entity-Relationship model, state machines, API contracts, connection pooling, and threat modeling.
+- **[Architecture Decision Records (ADRs)](./docs/adr/README.md):** Michael Nygard-standard ADRs covering monolith topology, PRN gate pivot, connection pooling, and verification logging.
+- **[Product Requirements Document (PRD)](./college_developer_platform_PRD.md):** Founder vision, user personas, problem statements, and feature specifications.
+- **[Development Plan & Roadmap](./DEVELOPMENT_PLAN.md):** Milestone tracking and backlog of ready-to-build tasks for contributors.
+
+---
+
+## Contributing & Backlog
+
+See [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) for the active milestones and backlog tasks ready for collaborators to pick up.

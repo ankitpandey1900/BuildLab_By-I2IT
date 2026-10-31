@@ -38,6 +38,31 @@ The platform supports two valid project paths:
 The platform is not a replacement for GitHub, a mandatory gatekeeper for
 open source, a code execution service, or a popularity contest.
 
+```mermaid
+flowchart LR
+    subgraph Onboarding ["1. Access & Verification"]
+        Login["GitHub Sign-In"] --> CheckStatus{"Campus Verified?"}
+        CheckStatus -->|No| Modal["Submit PRN / Roll No / Dept"]
+        Modal --> Review["Admin Review Desk"]
+        Review -->|Approved| Verified["Campus Verified Badge"]
+    end
+
+    subgraph Discovery ["2. Discovery & Collaboration"]
+        CheckStatus -->|Yes| Directory["Campus Project Directory"]
+        Verified --> Directory
+        Directory --> SelectTask["Filter by Dept & Claim Task"]
+        SelectTask --> Pitch["Submit Structured Pitch"]
+        Pitch --> Maintainer["Maintainer Accepts Proposal"]
+    end
+
+    subgraph Execution ["3. Mentorship & Verification"]
+        Maintainer --> Code["Ship PR on GitHub"]
+        SelectTask -.-> Mentor["1-on-1 Mentor Guidance"]
+        Code --> Merge["PR Merged"]
+        Merge --> Receipt["Verified Contribution Receipt"]
+    end
+```
+
 ## 1.3 Problem statement
 
 Students often build projects in isolation. Useful projects can stall
@@ -170,24 +195,15 @@ destination, system updates, and recovery access.
 ### Journey A: Join and establish identity
 
 1.  User opens the platform.
-2.  User signs in using the configured authentication provider.
-3.  The platform verifies college eligibility according to the approved
-    policy.
-4.  User claims or connects a GitHub account through OAuth / GitHub
-    App-supported flow as appropriate.
-5.  User reviews what GitHub data will be imported and how it will be
-    used.
-6.  User completes a profile with skills, interests, availability, and
-    preferred contribution areas.
-7.  User can edit public profile fields and control optional visibility
-    settings.
+2.  User signs in via GitHub OAuth (bypassing mandatory institutional `@isquareit.edu.in` domain email requirements so students can use their active developer profiles).
+3.  The platform enforces the **Campus Identity Verification Gate**:
+    - **Students:** verify college affiliation by submitting University PRN, Class Roll Number, Academic Year (FE, SE, TE, BE), and Department (Computer Engineering, Information Technology, or E&TC).
+    - **Faculty / Mentors:** verify affiliation by submitting official College Employee Code, Academic Designation, and Department.
+4.  Admin or faculty reviewer validates credentials in the Admin Verification Desk and updates status to `VERIFIED` (or requests revisions with specific feedback).
+5.  User completes their developer profile with skills, interests, availability, and preferred contribution areas.
+6.  User can edit public profile fields and manage project showcases.
 
-Acceptance: - Unverified users cannot access college-only features if
-the policy requires verification. - OAuth state and redirect validation
-prevent account-linking attacks. - Secrets never appear in client-side
-code or logs. - Users can disconnect their GitHub account, subject to
-clearly explained consequences for future sync and existing attribution
-records.
+Acceptance: - Unverified users can browse projects and roadmaps, but cannot create projects, claim tasks, pitch solutions, or message mentors. - Dual verification tracks cleanly isolate student PRNs from faculty employee codes. - Unique constraints on PRN prevent multiple accounts claiming the same college identity. - OAuth state and redirect validation prevent account-linking attacks. - Secrets never appear in client-side code or logs.
 
 ### Journey B: Publish an independent project
 
@@ -299,9 +315,8 @@ important next; **P2** later enhancement.
 
 ### Identity and profiles
 
--   FR-ID-01 (P0): support secure sign-in and sign-out.
--   FR-ID-02 (P0): implement college eligibility verification according
-    to an approved policy.
+-   FR-ID-01 (P0): support secure GitHub OAuth sign-in and sign-out (eliminating forced campus email domain logins).
+-   FR-ID-02 (P0): enforce Campus Identity Verification Gate (University PRN + Roll No for students; Employee Code + Designation for faculty) reviewed via the Admin Desk.
 -   FR-ID-03 (P0): allow profile editing for display name, bio, skills,
     interests, and availability.
 -   FR-ID-04 (P0): connect a GitHub account with secure OAuth state
