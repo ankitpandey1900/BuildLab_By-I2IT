@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING_APPROVAL
+  VERIFIED
+  REJECTED
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  target    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  ownerId       String
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String   @unique
+  summary       String
+  problemStatement String @default("")
+  status        String
+  maturity      String   @default("idea")
+  tags          String   @default("[]")
+  skills        String   @default("[]")
+  teamNeeds     String   @default("[]")
+  visibility    String   @default("college")
+  repositoryUrl String?
+  license       String?
+  contributionGuide String?
+  links         String   @default("[]")
+  handoverFlagged Boolean @default(false)
+  readme        String?
+  archivedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  members       ProjectMember[]
+  collaborationRequests CollaborationRequest[]
+  tasks         ProjectTask[]
+  verifiedContributions VerifiedContribution[]
+  supportApplication    SupportApplication?
+
+  @@index([ownerId, status])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("contributor")
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId, role])
+}
+
+model User {
+  id                    String    @id
+  name                  String
+  email                 String    @unique
+  emailVerified         Boolean   @default(false)
+  image                 String?
+  role                  String    @default("student")
+  bio                   String    @default("")
+  branchYear            String    @default("")
+  skills                String    @default("[]")
+  interests             String    @default("[]")
+  availability          Int       @default(0)
+  prnNumber             String?   @unique
+  rollNumber            String?
+  academicYear          String?
+  department            String?
+  verificationStatus    VerificationStatus @default(UNVERIFIED)
+  rejectionReason       String?
+  verifiedAt            DateTime?
+  verifiedById          String?
+  verifiedBy            User?     @relation("VerifiedByAdmin", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verificationsReviewed User[]    @relation("VerifiedByAdmin")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  accounts              Account[]
+  sessions              Session[]
+  projects              Project[]
+  projectMemberships    ProjectMember[]
+  collaborationRequests CollaborationRequest[] @relation("ApplicantRequests")
+  requestActivities     CollaborationActivity[] @relation("ActivityActor")
+  notifications         Notification[]
+  verifiedContributions VerifiedContribution[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model CollaborationRequest {
+  id          String   @id @default(cuid())
+  projectId   String
+  applicantId String
+  role        String
+  issueUrl    String?
+  message     String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applicant   User     @relation("ApplicantRequests", fields: [applicantId], references: [id], onDelete: Cascade)
+  activities  CollaborationActivity[]
+
+  @@index([projectId, status, createdAt])
+  @@index([applicantId, createdAt])
+}
+
+model CollaborationActivity {
+  id          String   @id @default(cuid())
+  requestId   String
+  actorId     String?
+  action      String
+  note        String?
+  createdAt   DateTime @default(now())
+  request     CollaborationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actor       User?    @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([requestId, createdAt])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String   @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model WebhookDelivery {
+  id          String    @id
+  event       String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  status      String    @default("received")
+  error       String?
+}
+
+model VerifiedContribution {
+  id               String    @id @default(cuid())
+  userId           String
+  projectId        String?
+  type             String
+  title            String
+  repo             String
+  source           String    @default("github_webhook")
+  verifiedByGitHub Boolean   @default(true)
+  externalUrl      String?
+  sha              String?
+  deliveryId       String?
+  details          String?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project          Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([projectId])
+  @@index([repo])
+  @@index([deliveryId])
+}
+
+model ProjectTask {
+  id             String   @id @default(cuid())
+  projectId      String
+  title          String
+  description    String   @default("")
+  difficulty     String   @default("beginner")
+  status         String   @default("open")
+  role           String?
+  suggestedFiles String   @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+}
+
+model SupportApplication {
+  id                  String    @id @default(cuid())
+  projectId           String    @unique
+  status              String    @default("submitted")
+  problem             String    @default("")
+  targetAudience      String    @default("")
+  requestedSupport    String    @default("[]")
+  risksAndMitigations String    @default("")
+  nextMilestone       String    @default("")
+  reviewerNotes       String?
+  reviewedBy          String?
+  decisionDate        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
