@@ -108,57 +108,26 @@ flowchart TD
 
 ---
 
-## 4. Key Sequence & Data Flow Diagrams
+## 4. Key Workflows & Operational Data Flows
 
 ### 4.1 Campus Identity Verification Flow
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Student as Student (Contributor)
-    participant UI as Campus Verification Modal
-    participant API as /api/verification/apply
-    participant DB as PostgreSQL (Supabase)
-    actor Admin as Reviewer (Faculty / Admin)
-    participant Desk as Admin Verification Desk
-
-    Note over Student, UI: Student enters official enrollment details
-    Student->>UI: Inputs PRN / Emp Code, Roll No, Branch (CE/IT/E&TC), Year
-    UI->>API: POST /api/verification/apply (JSON body)
+flowchart TD
+    Start(["Student / Faculty starts verification"]) --> FillForm["1. Enter official enrollment details<br/>(Student: PRN + Roll No | Faculty: Employee Code)"]
+    FillForm --> Validate["2. API validates department & checks for duplicate PRN"]
     
-    API->>API: Validate session & allowed department enum
-    API->>DB: Check if PRN/Emp Code already claimed (SELECT WHERE prnNumber = :prn)
+    Validate --> DupCheck{"Is PRN / Employee Code already claimed?"}
+    DupCheck -->|Yes - Duplicate| Conflict["Return 409 Conflict<br/>Prompt student to correct details or contact college IT"]
     
-    alt PRN Already Claimed
-        DB-->>API: Conflict: Matching record found
-        API-->>UI: 409 Conflict ("PRN already claimed by another account")
-        UI-->>Student: Displays error banner with college office contact info
-    else PRN Available (Unique)
-        API->>DB: UPDATE User SET verificationStatus = 'PENDING_APPROVAL', prnNumber, rollNumber, department
-        API->>DB: INSERT INTO AuditEvent ("VERIFICATION_SUBMITTED")
-        DB-->>API: Transaction Committed
-        API-->>UI: 200 OK (Status: PENDING_APPROVAL)
-        UI-->>Student: Modal updates to pending state (Read-Only)
-    end
-
-    Note over Admin, Desk: Lead reviewer audits submitted credentials
-    Admin->>Desk: Opens Verification Queue
-    Desk->>DB: SELECT Users WHERE verificationStatus = 'PENDING_APPROVAL'
-    DB-->>Desk: Returns pending queue with timestamps and details
-
-    alt Admin Approves
-        Admin->>Desk: Clicks "Approve Student"
-        Desk->>DB: UPDATE User SET verificationStatus = 'VERIFIED', verifiedAt = NOW(), verifiedById = :adminId
-        Desk->>DB: INSERT INTO AuditEvent ("VERIFICATION_APPROVED")
-        Desk->>DB: INSERT INTO Notification ("Campus Identity Verified! Full access unlocked.")
-        Desk-->>Admin: UI updates row to verified
-    else Admin Requests Revision
-        Admin->>Desk: Inputs correction reason & clicks "Request Changes"
-        Desk->>DB: UPDATE User SET verificationStatus = 'REJECTED', rejectionReason = :reason
-        Desk->>DB: INSERT INTO AuditEvent ("VERIFICATION_REJECTED")
-        Desk->>DB: INSERT INTO Notification ("Verification Correction Required: " + :reason)
-        Desk-->>Admin: UI flags applicant for revision
-    end
+    DupCheck -->|No - Unique| Pending["3. Save details with status: PENDING_APPROVAL<br/>Log audit event in database"]
+    Pending --> Queue["4. Application appears in Admin Verification Desk queue"]
+    
+    Queue --> AdminDecision{"Admin audits credentials against college roster"}
+    
+    AdminDecision -->|Approved| Verified["Status: VERIFIED<br/>• Full privileges unlocked (create repos, pitch tasks)<br/>• Notification dispatched to student<br/>• Verification timestamp & admin ID recorded"]
+    
+    AdminDecision -->|Changes Requested| Rejected["Status: REJECTED<br/>• Specific rejection reason recorded<br/>• Notification dispatched with fix instructions<br/>• Student can correct details & resubmit"]
 ```
 
 ---
@@ -166,47 +135,21 @@ sequenceDiagram
 ### 4.2 Collaboration Proposal Flow
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Contributor as Verified Student
-    participant Modal as Collaboration Modal
-    participant CollabAPI as /api/collaboration-requests
-    participant DB as PostgreSQL (Supabase)
-    actor Maintainer as Project Lead / Maintainer
-    participant Inbox as Collaboration Inbox
-
-    Contributor->>Modal: Selects target task / role & writes implementation pitch
-    Modal->>CollabAPI: POST /api/collaboration-requests
-    CollabAPI->>DB: Check User.verificationStatus == 'VERIFIED'
+flowchart TD
+    Start(["Student discovers project task or open role"]) --> SubmitPitch["1. Student writes implementation proposal & clicks 'Pitch Solution'"]
     
-    alt User Not Verified
-        DB-->>CollabAPI: Status != VERIFIED
-        CollabAPI-->>Modal: 403 Forbidden ("Campus verification required to pitch")
-    else User Verified
-        CollabAPI->>DB: INSERT INTO CollaborationRequest (status: 'pending', message, role)
-        CollabAPI->>DB: INSERT INTO Notification (to Project Owner: "New pitch received")
-        DB-->>CollabAPI: 201 Created
-        CollabAPI-->>Modal: 201 Created (Proposal Dispatched)
-        Modal-->>Contributor: Shows confirmation badge
-    end
-
-    Maintainer->>Inbox: Opens Incoming Proposals
-    Inbox->>DB: Fetch pending requests for maintainer projects
-    DB-->>Inbox: Returns applicant pitch, skills, PRN status, and task title
-
-    alt Maintainer Accepts Pitch
-        Maintainer->>Inbox: Clicks "Accept Proposal"
-        Inbox->>DB: UPDATE CollaborationRequest SET status = 'accepted'
-        Inbox->>DB: INSERT INTO ProjectMember (projectId, userId, role)
-        Inbox->>DB: UPDATE ProjectTask SET status = 'claimed' (if task linked)
-        Inbox->>DB: INSERT INTO Notification (to Contributor: "Pitch accepted! Added to team.")
-        Inbox-->>Maintainer: Contributor added to active roster
-    else Maintainer Declines Pitch
-        Maintainer->>Inbox: Clicks "Decline" with optional feedback
-        Inbox->>DB: UPDATE CollaborationRequest SET status = 'declined'
-        Inbox->>DB: INSERT INTO Notification (to Contributor: "Proposal declined.")
-        Inbox-->>Maintainer: Request archived
-    end
+    SubmitPitch --> CheckAuth{"Is student campus verified?"}
+    CheckAuth -->|No - Unverified| GateModal["Block submission with 403 Forbidden<br/>Prompt student to complete Campus Verification Gate"]
+    
+    CheckAuth -->|Yes - Verified| CreateReq["2. API creates CollaborationRequest (status: 'pending')<br/>Dispatches notification to Project Maintainer"]
+    
+    CreateReq --> Inbox["3. Maintainer reviews proposal in Collaboration Inbox<br/>(Inspects student pitch, skills, and verified PRN status)"]
+    
+    Inbox --> MaintainerDecision{"Maintainer Decision"}
+    
+    MaintainerDecision -->|Accept Proposal| Accepted["Status: 'accepted'<br/>• Student added to ProjectMember roster<br/>• Target ProjectTask updated to 'claimed'<br/>• Welcome notification sent to contributor"]
+    
+    MaintainerDecision -->|Decline Proposal| Declined["Status: 'declined'<br/>• Maintainer provides constructive feedback note<br/>• Notification sent to contributor"]
 ```
 
 ---
@@ -214,42 +157,19 @@ sequenceDiagram
 ### 4.3 Verified Git Contribution Ingestion Flow
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Developer as Student Developer
-    participant GitHub as GitHub Platform
-    participant WebhookAPI as /api/github/webhook
-    participant DB as PostgreSQL (Supabase)
-    participant Profile as Contributor Profile UI
-
-    Developer->>GitHub: Merges Pull Request into Project Repository
-    GitHub->>WebhookAPI: POST /api/github/webhook (Payload: pull_request.closed, merged=true)
+flowchart TD
+    Start(["Student merges Pull Request on GitHub repository"]) --> GHWebhook["1. GitHub fires webhook POST /api/github/webhook<br/>(Event: pull_request.closed, merged: true)"]
     
-    Note over WebhookAPI: Cryptographic validation of GitHub webhook signature
-    WebhookAPI->>WebhookAPI: Compute HMAC SHA-256 with GITHUB_WEBHOOK_SECRET
-    WebhookAPI->>WebhookAPI: Compare with incoming X-Hub-Signature-256 header
-
-    alt Invalid Signature
-        WebhookAPI-->>GitHub: 401 Unauthorized (Payload rejected)
-    else Valid Signature
-        WebhookAPI->>DB: Record WebhookDelivery (event: 'pull_request.closed', status: 'processing')
-        WebhookAPI->>DB: Resolve author GitHub handle / email to campus User
-        
-        alt Student Account Resolved
-            WebhookAPI->>DB: INSERT INTO VerifiedContribution (type: 'pull_request_merged', sha, repo, verifiedByGitHub: true)
-            WebhookAPI->>DB: UPDATE WebhookDelivery SET status = 'processed'
-            WebhookAPI->>DB: INSERT INTO Notification (to Developer: "Git contribution verified on campus profile!")
-            WebhookAPI-->>GitHub: 200 OK (Processed)
-        else Account Not Found / Unregistered
-            WebhookAPI->>DB: UPDATE WebhookDelivery SET status = 'unmatched_user'
-            WebhookAPI-->>GitHub: 200 OK (Logged)
-        end
-    end
-
-    Developer->>Profile: Navigates to Public Campus Profile
-    Profile->>DB: Query User with verifiedContributions
-    DB-->>Profile: Returns list of verified PRs with commit SHA and repo link
-    Profile-->>Developer: Displays cryptographically verified contribution badge
+    GHWebhook --> VerifySig{"2. Validate X-Hub-Signature-256 HMAC<br/>against GITHUB_WEBHOOK_SECRET"}
+    VerifySig -->|Invalid Signature| Reject401["Reject with 401 Unauthorized<br/>(Payload spoofing prevented)"]
+    
+    VerifySig -->|Valid Signature| ResolveUser{"3. Resolve author GitHub username / email to campus User"}
+    
+    ResolveUser -->|Student Account Found| WriteReceipt["4. Database Transactions:<br/>• Insert into VerifiedContribution (with commit SHA & PR link)<br/>• Mark WebhookDelivery as 'processed'<br/>• Send campus portfolio notification to student"]
+    
+    ResolveUser -->|Account Unmatched| LogUnmatched["Log WebhookDelivery as 'unmatched_user'<br/>(Retained for future claim)"]
+    
+    WriteReceipt --> ProfileDisplay["5. Public Campus Profile displays verified contribution badge<br/>with direct commit SHA proof"]
 ```
 
 ---

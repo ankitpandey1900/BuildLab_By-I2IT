@@ -227,6 +227,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Ensure refreshing the landing page always starts cleanly at the top
+    if (typeof window !== "undefined") {
+      if ("scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+      if (!window.location.hash) {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.key === '/' &&
@@ -580,8 +592,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* Main Hero Section with Ambient Developer Workspace & Git Trust Layer */}
       <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[var(--border-subtle)]">
-        {/* Subtle Spotlight Beam from top */}
-        <Spotlight className="-top-40 left-0 md:left-40 md:-top-20" fill="white" />
+        {/* Dual Spotlight Beams from top-left and top-right */}
+        <Spotlight className="-top-40 left-0 md:left-32 md:-top-20" fill="white" side="left" />
+        <Spotlight className="-top-40 right-0 md:right-32 md:-top-20" fill="white" side="right" />
 
         {/* Ambient Dot Grid with Radial Vignette */}
         <div 

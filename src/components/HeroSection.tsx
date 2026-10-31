@@ -18,8 +18,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 }) => {
   return (
     <section className="relative overflow-hidden pt-6 pb-8 border-b border-[var(--border-subtle)] mb-6">
-      {/* Subtle Spotlight Beam */}
-      <Spotlight className="-top-36 left-0 md:left-40 md:-top-20" fill="white" />
+      {/* Dual Spotlight Beams from top-left and top-right */}
+      <Spotlight className="-top-36 left-0 md:left-32 md:-top-20" fill="white" side="left" />
+      <Spotlight className="-top-36 right-0 md:right-32 md:-top-20" fill="white" side="right" />
 
       {/* Background Dots Pattern with radial vignette */}
       <div 
