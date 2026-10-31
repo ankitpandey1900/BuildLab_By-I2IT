@@ -46,8 +46,8 @@ flowchart LR
 
 ### 2. Clone & Install
 ```bash
-git clone https://github.com/ankitpandey1900/OpenSource_Dev_I2it.git
-cd OpenSource_Dev_I2it
+git clone https://github.com/ankitpandey1900/BuildLab_By-I2IT.git
+cd BuildLab_By-I2IT
 npm install
 ```
 
@@ -99,11 +99,11 @@ We maintain production-grade engineering documentation following industry standa
 - **[System Architecture Document](./docs/architecture/SYSTEM_ARCHITECTURE.md):** High-level topology, component decomposition, network boundaries, and Mermaid sequence flows.
 - **[System Design Document](./docs/design/SYSTEM_DESIGN.md):** Entity-Relationship model, state machines, API contracts, connection pooling, and threat modeling.
 - **[Architecture Decision Records (ADRs)](./docs/adr/README.md):** Michael Nygard-standard ADRs covering monolith topology, PRN gate pivot, connection pooling, and verification logging.
-- **[Product Requirements Document (PRD)](./college_developer_platform_PRD.md):** Founder vision, user personas, problem statements, and feature specifications.
-- **[Development Plan & Roadmap](./DEVELOPMENT_PLAN.md):** Milestone tracking and backlog of ready-to-build tasks for contributors.
+- **[Product Requirements Document (PRD)](./docs/PRD.md):** Founder vision, user personas, problem statements, and feature specifications.
+- **[Development Plan & Roadmap](./docs/DEVELOPMENT_ROADMAP.md):** Milestone tracking and backlog of ready-to-build tasks for contributors.
 
 ---
 
 ## Contributing & Backlog
 
-See [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) for the active milestones and backlog tasks ready for collaborators to pick up.
+See [DEVELOPMENT_ROADMAP.md](./docs/DEVELOPMENT_ROADMAP.md) for the active milestones and backlog tasks ready for collaborators to pick up.

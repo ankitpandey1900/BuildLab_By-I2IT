@@ -2,7 +2,7 @@
 
 > **Author & Lead:** Ankit Pandey (Student Founder & Product Lead)  
 > **Status:** Phase 0–3 Complete & Deployed; Phase 4–5 in Active Development  
-> **Repository:** `https://github.com/ankitpandey1900/OpenSource_Dev_I2it`  
+> **Repository:** `https://github.com/ankitpandey1900/BuildLab_By-I2IT`  
 > **Philosophy:** Make it real first, make it rock-solid, then make it beautiful. No fake features, no mock-only placeholders, no broken promises.
 
 ---
@@ -102,8 +102,8 @@ If you are joining to build on this codebase, follow these steps:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/ankitpandey1900/OpenSource_Dev_I2it.git
-   cd OpenSource_Dev_I2it
+   git clone https://github.com/ankitpandey1900/BuildLab_By-I2IT.git
+   cd BuildLab_By-I2IT
    ```
 
 2. **Install dependencies:**
