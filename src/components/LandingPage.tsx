@@ -294,7 +294,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       footerText: "GitHub & PRN Verification",
       footerTag: "Verified",
       renderMock: () => (
-        <div className="rounded-xl bg-[var(--bg-surface-elevated)]/50 p-4 space-y-3 font-sans">
+        <div className="rounded-xl bg-[var(--bg-surface-elevated)] p-4 space-y-3 font-sans">
           <div className="flex items-center justify-between text-[11.5px]">
             <div className="flex items-center gap-2">
               <GraduationCap size={15} className="text-[var(--text-secondary)]" />
@@ -347,7 +347,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       footerText: "Maintainer Code Review",
       footerTag: "1:1 Mentorship",
       renderMock: () => (
-        <div className="rounded-xl bg-[var(--bg-surface-elevated)]/50 p-4 space-y-3 font-sans">
+        <div className="rounded-xl bg-[var(--bg-surface-elevated)] p-4 space-y-3 font-sans">
           {/* Header with repo breadcrumb and difficulty pill */}
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono text-[var(--text-secondary)] text-[11px] font-medium flex items-center gap-1.5 truncate">
@@ -433,7 +433,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       footerText: "Signed Commit Receipt",
       footerTag: "Immutable",
       renderMock: () => (
-        <div className="rounded-xl bg-[var(--bg-surface-elevated)]/50 p-4 space-y-3 font-mono text-xs">
+        <div className="rounded-xl bg-[var(--bg-surface-elevated)] p-4 space-y-3 font-mono text-xs">
           <div className="flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-1.5">
               <ShieldCheck size={14} className="text-[var(--text-secondary)]" />
@@ -528,7 +528,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-[var(--accent-primary)]/20 selection:text-[var(--accent-primary)]">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-blue-500/25 selection:text-[var(--accent-primary)]">
       
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 bg-[var(--header-bg)] backdrop-blur-md border-b border-[var(--border-subtle)] transition-colors">
@@ -569,22 +569,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <ArrowRight size={13} />
               </Link>
             ) : (
-              <>
-                <Link 
-                  href="/sign-in"
-                  className="btn btn-secondary btn-sm text-xs hidden sm:flex items-center gap-1 cursor-pointer"
-                >
-                  <LogIn size={13} />
-                  <span>Sign in</span>
-                </Link>
-                <Link 
-                  href="/sign-up"
-                  className="btn btn-primary btn-sm text-xs flex items-center gap-1.5 cursor-pointer font-medium"
-                >
-                  <span>Join Community</span>
-                  <ArrowUpRight size={13} />
-                </Link>
-              </>
+              <Link 
+                href="/sign-up"
+                className="btn btn-primary btn-sm text-xs flex items-center gap-1.5 cursor-pointer font-medium"
+              >
+                <span>Join Community</span>
+                <ArrowUpRight size={13} />
+              </Link>
             )}
           </div>
         </div>
@@ -728,30 +719,67 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   className="px-5 py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-all cursor-pointer"
                 >
                   <GitHubLogo className="w-3.5 h-3.5 shrink-0" />
-                  <span>{isAuthenticated ? "Open Workspace" : "Join with College Email"}</span>
+                  <span>{isAuthenticated ? "Open Workspace" : "Join Community"}</span>
                   <ArrowRight size={14} className="text-[var(--text-tertiary)]" />
                 </Link>
               </motion.div>
             </div>
 
             {/* Live Community Developer Faces & Activity Strip */}
-            <div className="pt-1 flex items-center justify-center gap-3.5 flex-wrap">
-              <div className="flex items-center -space-x-2 shrink-0">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30 text-blue-400 border-2 border-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center shadow-xs" title="Aarav Sharma · CE '26">AS</div>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 text-purple-400 border-2 border-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center shadow-xs" title="Ananya Kulkarni · IT '27">AK</div>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/30 text-emerald-400 border-2 border-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center shadow-xs" title="Rohan Deshmukh · ENTC '25">RD</div>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500/30 to-orange-500/30 text-amber-400 border-2 border-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center shadow-xs" title="Sneha Patil · AI&DS '26">SP</div>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500/30 to-blue-500/30 text-indigo-400 border-2 border-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center shadow-xs" title="Tanmay Joshi · CE '25">TJ</div>
-              </div>
+            <div className="pt-2 flex justify-center">
+              <motion.div 
+                whileHover={{ y: -1 }}
+                style={{ backgroundColor: "var(--bg-surface)" }}
+                className="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-default)] shadow-[0_8px_25px_rgba(0,0,0,0.18)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)] transition-all cursor-default flex-wrap sm:flex-nowrap justify-center"
+              >
+                {/* Overlapping Avatar Stack with Micro-Zoom */}
+                <div className="flex items-center -space-x-2 shrink-0">
+                  <div 
+                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500/25 to-blue-600/25 text-sky-300 border border-sky-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    title="Aarav Sharma · CE '26 (14 contributions)"
+                  >
+                    AS
+                  </div>
+                  <div 
+                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500/25 to-pink-600/25 text-purple-300 border border-purple-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    title="Ananya Kulkarni · IT '27 (9 contributions)"
+                  >
+                    AK
+                  </div>
+                  <div 
+                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500/25 to-teal-600/25 text-emerald-300 border border-emerald-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    title="Rohan Deshmukh · E&TC '25 (22 contributions)"
+                  >
+                    RD
+                  </div>
+                  <div 
+                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500/25 to-orange-600/25 text-amber-300 border border-amber-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    title="Sneha Patil · CE '26 (11 contributions)"
+                  >
+                    SP
+                  </div>
+                  <div 
+                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500/25 to-blue-600/25 text-indigo-300 border border-indigo-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    title="Tanmay Joshi · IT '25 (17 contributions)"
+                  >
+                    TJ
+                  </div>
+                </div>
 
-              <div className="text-xs text-[var(--text-secondary)] font-medium flex items-center gap-1.5 flex-wrap justify-center">
-                <span className="text-[var(--text-pure)] font-bold">140+ campus engineers</span>
-                <span className="text-[var(--text-tertiary)]">•</span>
-                <span className="text-emerald-400 flex items-center gap-1 font-mono text-[11px]">
-                  <Flame size={12} className="text-amber-500 fill-amber-500" />
-                  <span>24 pull requests merged this week</span>
-                </span>
-              </div>
+                {/* Metrics label with vertical divider */}
+                <div className="flex items-center gap-2.5 text-xs text-[var(--text-secondary)] font-medium">
+                  <span className="text-[var(--text-pure)] font-bold tracking-tight">
+                    140+ campus engineers
+                  </span>
+
+                  <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)] opacity-60 hidden sm:inline" />
+
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[11px] font-medium shadow-2xs">
+                    <Flame size={12} className="text-amber-400 fill-amber-400 animate-pulse shrink-0" />
+                    <span>24 PRs merged this week</span>
+                  </span>
+                </div>
+              </motion.div>
             </div>
 
             {/* Quick Git Clone Snippet */}
@@ -923,7 +951,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div 
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)]/60 transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
@@ -957,7 +985,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div 
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)]/60 transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
@@ -991,7 +1019,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div 
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)]/60 transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -1024,7 +1052,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div 
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)]/60 transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
@@ -1262,7 +1290,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* Redesigned Bento Workflow Section (Upgraded from Plain 01/02/03 Boxes) */}
-      <section id="workflow" className="py-16 sm:py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/30">
+      <section id="workflow" className="py-16 sm:py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
           
           {/* Section Header */}
@@ -1506,7 +1534,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* Guidelines & FAQ Section with Framer Motion Accordion */}
-      <section id="faq" className="py-16 sm:py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/30">
+      <section id="faq" className="py-16 sm:py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[11px] font-medium text-[var(--text-secondary)]">

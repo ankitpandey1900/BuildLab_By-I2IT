@@ -230,7 +230,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {tableRows.map((row, rIdx) => (
-                <tr key={rIdx} className="hover:bg-[var(--bg-surface-elevated)]/40 transition-colors">
+                <tr key={rIdx} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
                   {row.map((cell, cIdx) => (
                     <td key={cIdx} className="px-4 py-2.5 text-[var(--text-secondary)] text-[12.5px]">
                       {renderInlineMarkdown(cell)}

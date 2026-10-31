@@ -20,7 +20,10 @@ export default function SignUpPage() {
       />
 
       {/* Main Glassmorphic Card */}
-      <section className="relative w-full max-w-[420px] rounded-2xl bg-[var(--bg-surface)]/90 backdrop-blur-xl border border-[var(--border-default)] shadow-[0_20px_50px_rgba(0,0,0,0.45)] p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+      <section 
+        className="relative w-full max-w-[420px] rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[0_20px_50px_rgba(0,0,0,0.45)] p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200"
+        style={{ backgroundColor: "var(--bg-surface)" }}
+      >
         
         {/* Brand Header */}
         <div className="flex items-center gap-3.5">

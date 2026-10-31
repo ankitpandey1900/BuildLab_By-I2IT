@@ -205,7 +205,7 @@ export const MentorChatModal: React.FC<MentorChatModalProps> = ({
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-[var(--bg-surface)]/40">
+        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-[var(--bg-canvas)]">
           {messages.map((msg) => (
             <div
               key={msg.id}

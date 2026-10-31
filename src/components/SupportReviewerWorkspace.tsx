@@ -375,7 +375,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
               </div>
             ) : (
               /* Clean Empty State */
-              <div className="rounded-xl border border-dashed border-[var(--border-default)] p-8 text-center space-y-3 bg-[var(--bg-surface-elevated)]/30">
+              <div className="rounded-xl border border-dashed border-[var(--border-default)] p-8 text-center space-y-3 bg-[var(--bg-surface)]">
                 <div className="w-10 h-10 mx-auto rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
                   <FolderGit2 size={20} />
                 </div>
