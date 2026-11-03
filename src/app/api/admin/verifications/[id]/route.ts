@@ -1,10 +1,7 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const ALLOWED_ADMIN_ROLES = ["admin", "lead", "faculty", "reviewer"];
+import { getAdminCaller } from "@/lib/admin-caller";
 
 const actionSchema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -16,24 +13,13 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    let caller: { id: string; name: string; role: string } | null = null;
-
-    if (session?.user) {
-      caller = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { id: true, name: true, role: true },
-      });
+    const adminCaller = await getAdminCaller();
+    if (!adminCaller) {
+      return NextResponse.json(
+        { message: "Forbidden. Admin or reviewer privileges required." },
+        { status: 403 }
+      );
     }
-
-    if (!caller) {
-      caller = await prisma.user.findFirst({
-        where: { role: { in: ["admin", "faculty", "reviewer", "lead"] } },
-        select: { id: true, name: true, role: true },
-      });
-    }
-
-    const adminCaller = caller ?? { id: "admin-lead", name: "Campus Community Lead", role: "admin" };
 
     const { id: targetUserId } = await context.params;
     const json = await request.json().catch(() => null);
@@ -65,7 +51,7 @@ export async function PATCH(
         },
       });
 
-      // Log audit
+      // Audit trail
       await db.auditEvent.create({
         data: {
           actorId: adminCaller.id,
@@ -80,13 +66,13 @@ export async function PATCH(
         },
       }).catch(() => null);
 
-      // Notify student
+      // In-app notification
       await db.notification.create({
         data: {
           userId: targetUserId,
           type: "verification_update",
           title: "🎉 Campus Verification Approved!",
-          body: "Your campus verification is approved. You now have full access to claim project tasks, chat with mentors, and post repositories.",
+          body: "Your campus verification is approved. You now have full access to claim project tasks and collaborate on BuildLab.",
           href: "/dashboard",
         },
       }).catch(() => null);
@@ -106,7 +92,6 @@ export async function PATCH(
         },
       });
 
-      // Log audit
       await db.auditEvent.create({
         data: {
           actorId: adminCaller.id,
@@ -121,7 +106,6 @@ export async function PATCH(
         },
       }).catch(() => null);
 
-      // Notify student
       await db.notification.create({
         data: {
           userId: targetUserId,
@@ -143,4 +127,3 @@ export async function PATCH(
     return NextResponse.json({ message: "Failed to process verification decision." }, { status: 500 });
   }
 }
-
