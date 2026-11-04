@@ -41,7 +41,7 @@ export const CollaborationInbox: React.FC<CollaborationInboxProps> = ({
           requests.map(req => (
             <div 
               key={req.id}
-              className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-4 sm:p-5 space-y-3 shadow-sm hover:border-[var(--border-hover)] transition-colors"
+              className="bg-[var(--bg-ursface)] border border-[var(--border-subtle)] rounded-xl p-4 sm:p-5 space-y-3 shadow-sm hover:border-[var(--border-hover)] transition-colors"
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
