@@ -7,18 +7,27 @@ import { TeamMemberCard } from "./TeamMemberCard";
 import { CarouselIndicators } from "./CarouselIndicators";
 
 interface MentorCarouselProps {
-  mentors: TeamMember[];
+  members?: TeamMember[];
+  mentors?: TeamMember[];
+  id?: string;
 }
 
-export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
+export const MentorCarousel: React.FC<MentorCarouselProps> = ({
+  members,
+  mentors,
+  id = "mentors",
+}) => {
+  const memberList = members || mentors || [];
   const [activeIndex, setActiveIndex] = useState(0);
+  const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  const total = mentors.length;
+  const total = memberList.length;
   const maxIndex = Math.max(0, total - 1);
+  const isCardFlipped = flippedIndex !== null;
 
   // ResizeObserver to calculate exact pixel positioning for responsive centering
   useEffect(() => {
@@ -39,6 +48,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
   const goTo = useCallback(
     (next: number) => {
       if (total <= 1) return;
+      setFlippedIndex(null);
       if (next < 0) {
         setActiveIndex(maxIndex);
       } else if (next > maxIndex) {
@@ -58,16 +68,17 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
     goTo(activeIndex - 1);
   }, [activeIndex, goTo]);
 
-  // Auto-play animation with 3-second delay
+  // Auto-play animation with 3-second delay (pauses on hover, drag, or when card is flipped open)
   useEffect(() => {
-    if (total <= 1 || isPaused || isDragging) return;
+    if (total <= 1 || isPaused || isDragging || isCardFlipped) return;
 
     const timer = setInterval(() => {
+      setFlippedIndex(null);
       setActiveIndex((prev) => (prev + 1) % total);
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [total, isPaused, isDragging, activeIndex]);
+  }, [total, isPaused, isDragging, isCardFlipped, activeIndex]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowRight") {
@@ -102,7 +113,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
   if (total === 0) {
     return (
       <p className="text-center text-sm text-[var(--text-secondary)]">
-        Mentor profiles will appear here.
+        Profiles will appear here.
       </p>
     );
   }
@@ -112,7 +123,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
   const gap = isMobile ? 16 : 24;
   const cardWidth = containerWidth
     ? isMobile
-      ? Math.max(280, Math.min(containerWidth - 52, 440))
+      ? Math.max(280, Math.min(containerWidth - 44, 460))
       : Math.min(containerWidth * 0.78, 700)
     : 660;
 
@@ -136,11 +147,11 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
       onBlur={() => setIsPaused(false)}
       role="region"
       aria-roledescription="carousel"
-      aria-label="Mentors Carousel - Swipe left or right to change"
+      aria-label={`${id} Carousel - Swipe left or right to change, or click cards to view details`}
     >
       {/* Animated track with touch & mouse drag swipe */}
       <motion.div
-        className="flex items-stretch cursor-grab active:cursor-grabbing"
+        className="flex items-center cursor-grab active:cursor-grabbing"
         style={{
           touchAction: "pan-y",
           gap: `${gap}px`,
@@ -163,11 +174,12 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
           mass: 0.8,
         }}
       >
-        {mentors.map((mentor, index) => {
+        {memberList.map((member, index) => {
           const isActive = index === activeIndex;
           return (
             <motion.div
-              key={mentor.id}
+              layout
+              key={member.id}
               onClick={() => {
                 if (!isActive) goTo(index);
               }}
@@ -175,7 +187,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
                 width: `${cardWidth}px`,
               }}
               className={`shrink-0 transition-all duration-300 ${
-                isActive ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+                isActive ? "" : "cursor-pointer"
               }`}
               animate={{
                 scale: isActive ? 1 : 0.92,
@@ -189,7 +201,16 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
               }}
               aria-hidden={!isActive}
             >
-              <TeamMemberCard member={mentor} prominent={isActive} />
+              <TeamMemberCard
+                member={member}
+                prominent={isActive}
+                isFlipped={isActive && flippedIndex === index}
+                onFlipChange={(flipped) => {
+                  if (isActive) {
+                    setFlippedIndex(flipped ? index : null);
+                  }
+                }}
+              />
             </motion.div>
           );
         })}
@@ -197,9 +218,10 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({ mentors }) => {
 
       {/* Indicator dots with smooth morphing animation */}
       <CarouselIndicators
-        mentors={mentors}
+        members={memberList}
         activeIndex={activeIndex}
         onSelect={goTo}
+        carouselId={id}
       />
     </div>
   );

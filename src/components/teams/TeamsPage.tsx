@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Users } from "lucide-react";
 import { motion } from "framer-motion";
-import { getTeamHead, getTeamMentors } from "@/data/teamsData";
+import { getTeamHead, getTeamMentors, getTeamList } from "@/data/teamsData";
 import { Spotlight } from "@/components/ui/spotlight";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HeadProfile } from "./HeadProfile";
@@ -42,6 +42,7 @@ const ambientCodeSnippets = [
 export const TeamsPage: React.FC<TeamsPageProps> = () => {
   const head = getTeamHead();
   const mentors = getTeamMentors();
+  const team = getTeamList();
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-blue-500/25 selection:text-[var(--accent-primary)] overflow-x-hidden">
@@ -176,7 +177,7 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
             </h1>
 
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
-              A small group of builders, mentors and open-source enthusiasts making campus engineering better for everyone.
+              A community of faculty mentors, student leads, and open-source contributors making campus engineering better for everyone.
             </p>
           </div>
         </section>
@@ -206,7 +207,7 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
 
         {/* Mentors Section */}
         <section
-          className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28"
+          className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16"
           aria-labelledby="mentors-heading"
         >
           <div className="mx-auto max-w-4xl mb-4">
@@ -218,7 +219,24 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
               <span>Mentors</span>
             </h2>
           </div>
-          <MentorCarousel mentors={mentors} />
+          <MentorCarousel members={mentors} id="mentors" />
+        </section>
+
+        {/* Team Section */}
+        <section
+          className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-4 sm:px-6 sm:pb-28"
+          aria-labelledby="team-heading"
+        >
+          <div className="mx-auto max-w-4xl mb-4">
+            <h2
+              id="team-heading"
+              className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-[var(--text-pure)] sm:text-xl font-mono"
+            >
+              <span className="text-[var(--text-tertiary)] select-none text-xl font-light">—</span>
+              <span>Team</span>
+            </h2>
+          </div>
+          <MentorCarousel members={team} id="team" />
         </section>
       </main>
 
