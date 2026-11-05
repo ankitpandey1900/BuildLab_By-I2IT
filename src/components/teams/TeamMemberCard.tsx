@@ -36,6 +36,7 @@ function GlobeIcon() {
 interface TeamMemberCardProps {
   member: TeamMember;
   prominent?: boolean;
+  hasGlow?: boolean;
   isFlipped?: boolean;
   onFlipChange?: (flipped: boolean) => void;
 }
@@ -50,9 +51,11 @@ interface SocialLink {
 export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
   member,
   prominent = true,
+  hasGlow: controlledHasGlow,
   isFlipped: controlledFlipped,
   onFlipChange,
 }) => {
+  const hasGlow = controlledHasGlow !== undefined ? controlledHasGlow : prominent;
   const [imgSrc, setImgSrc] = useState(member.image);
   const [internalFlipped, setInternalFlipped] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -233,7 +236,9 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             !isFlipped ? "relative" : "absolute inset-0"
           } w-full rounded-[1.6rem] border p-5 sm:p-6 sm:px-7 transition-all duration-300 cursor-pointer select-none group [backface-visibility:hidden] flex items-center ${
             prominent
-              ? "border-white/35 bg-[var(--bg-surface)]/95 shadow-[0_0_25px_rgba(255,255,255,0.22),0_0_60px_rgba(255,255,255,0.1),0_12px_32px_rgba(0,0,0,0.4)] hover:border-white/50 hover:shadow-[0_0_35px_rgba(255,255,255,0.3),0_0_75px_rgba(255,255,255,0.15),0_16px_40px_rgba(0,0,0,0.5)]"
+              ? hasGlow
+                ? "border-white/35 bg-[var(--bg-surface)]/95 shadow-[0_0_25px_rgba(255,255,255,0.22),0_0_60px_rgba(255,255,255,0.1),0_12px_32px_rgba(0,0,0,0.4)] hover:border-white/50 hover:shadow-[0_0_35px_rgba(255,255,255,0.3),0_0_75px_rgba(255,255,255,0.15),0_16px_40px_rgba(0,0,0,0.5)]"
+                : "border-[var(--border-default)] bg-[var(--bg-surface)]/95 shadow-xl shadow-black/25 hover:border-[var(--border-hover)]"
               : "border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 opacity-90 shadow-md hover:border-[var(--border-default)]"
           } ${isFlipped ? "pointer-events-none" : ""}`}
         >
@@ -302,7 +307,11 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           }}
           className={`${
             isFlipped ? "relative" : "absolute inset-0"
-          } w-full rounded-[2rem] border border-white/35 bg-[var(--bg-surface)] p-6 sm:p-8 shadow-[0_0_30px_rgba(255,255,255,0.22),0_0_70px_rgba(255,255,255,0.1),0_20px_48px_rgba(0,0,0,0.5)] cursor-pointer select-none [backface-visibility:hidden] flex flex-col justify-between ${
+          } w-full rounded-[2rem] border transition-all duration-300 ${
+            hasGlow
+              ? "border-white/35 shadow-[0_0_30px_rgba(255,255,255,0.22),0_0_70px_rgba(255,255,255,0.1),0_20px_48px_rgba(0,0,0,0.5)]"
+              : "border-[var(--border-default)] shadow-2xl shadow-black/30"
+          } bg-[var(--bg-surface)] p-6 sm:p-8 cursor-pointer select-none [backface-visibility:hidden] flex flex-col justify-between ${
             !isFlipped ? "pointer-events-none" : ""
           }`}
         >

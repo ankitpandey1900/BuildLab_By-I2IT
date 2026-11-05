@@ -10,12 +10,14 @@ interface MentorCarouselProps {
   members?: TeamMember[];
   mentors?: TeamMember[];
   id?: string;
+  hasGlow?: boolean;
 }
 
 export const MentorCarousel: React.FC<MentorCarouselProps> = ({
   members,
   mentors,
   id = "mentors",
+  hasGlow = true,
 }) => {
   const memberList = members || mentors || [];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -204,6 +206,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
               <TeamMemberCard
                 member={member}
                 prominent={isActive}
+                hasGlow={isActive && hasGlow}
                 isFlipped={isActive && flippedIndex === index}
                 onFlipChange={(flipped) => {
                   if (isActive) {

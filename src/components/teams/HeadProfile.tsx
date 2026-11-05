@@ -7,9 +7,10 @@ import { TeamMemberCard } from "./TeamMemberCard";
 
 interface HeadProfileProps {
   member: TeamMember;
+  hasGlow?: boolean;
 }
 
-export const HeadProfile: React.FC<HeadProfileProps> = ({ member }) => {
+export const HeadProfile: React.FC<HeadProfileProps> = ({ member, hasGlow = true }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -17,7 +18,7 @@ export const HeadProfile: React.FC<HeadProfileProps> = ({ member }) => {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="mx-auto w-full max-w-4xl"
     >
-      <TeamMemberCard member={member} prominent={true} />
+      <TeamMemberCard member={member} prominent={true} hasGlow={hasGlow} />
     </motion.div>
   );
 };
