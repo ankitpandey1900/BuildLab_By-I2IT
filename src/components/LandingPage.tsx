@@ -685,31 +685,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {/* Overlapping Avatar Stack with Micro-Zoom */}
                 <div className="flex items-center -space-x-2 shrink-0">
                   <div 
-                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500/25 to-blue-600/25 text-sky-300 border border-sky-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    className="relative z-50 w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white border border-sky-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
                     title="Aarav Sharma · CE '26 (14 contributions)"
                   >
                     AS
                   </div>
                   <div 
-                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500/25 to-pink-600/25 text-purple-300 border border-purple-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    className="relative z-40 w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-pink-600 text-white border border-purple-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
                     title="Ananya Kulkarni · IT '27 (9 contributions)"
                   >
                     AK
                   </div>
                   <div 
-                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500/25 to-teal-600/25 text-emerald-300 border border-emerald-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    className="relative z-30 w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white border border-emerald-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
                     title="Rohan Deshmukh · E&TC '25 (22 contributions)"
                   >
                     RD
                   </div>
                   <div 
-                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500/25 to-orange-600/25 text-amber-300 border border-amber-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    className="relative z-20 w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 text-white border border-amber-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
                     title="Sneha Patil · CE '26 (11 contributions)"
                   >
                     SP
                   </div>
                   <div 
-                    className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500/25 to-blue-600/25 text-indigo-300 border border-indigo-400/30 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs" 
+                    className="relative z-10 w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-600 text-white border border-indigo-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
                     title="Tanmay Joshi · IT '25 (17 contributions)"
                   >
                     TJ
