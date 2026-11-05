@@ -45,20 +45,20 @@ flowchart TD
     end
 
     %% FLOW CONNECTIONS
-    Student -->|HTTPS / WSS| WebUI
-    Faculty -->|HTTPS / WSS| WebUI
-    Reviewer -->|HTTPS / WSS| WebUI
+    Student -->|"HTTPS / WSS"| WebUI
+    Faculty -->|"HTTPS / WSS"| WebUI
+    Reviewer -->|"HTTPS / WSS"| WebUI
 
-    WebUI -->|User Interactions / Hydration| AppRouter
-    AppRouter -->|Session Check| AuthModule
-    AppRouter -->|Data Mutations & Fetches| APIRoutes
+    WebUI -->|"User Interactions / Hydration"| AppRouter
+    AppRouter -->|"Session Check"| AuthModule
+    AppRouter -->|"Data Mutations & Fetches"| APIRoutes
     
-    AuthModule <-->|OAuth Handshake & Token Refresh| GitHubOAuth
-    GitHubWebhook -->|pull_request.closed Events| APIRoutes
+    AuthModule <-->|"OAuth Handshake & Token Refresh"| GitHubOAuth
+    GitHubWebhook -->|"pull_request.closed Events"| APIRoutes
 
-    APIRoutes -->|Domain Queries| PrismaClient
-    PrismaClient -->|Runtime Pool (DATABASE_URL)| Pooler
-    PrismaClient -.->|Migrations (DIRECT_URL)| DirectDB
+    APIRoutes -->|"Domain Queries"| PrismaClient
+    PrismaClient -->|"Runtime Pool (DATABASE_URL)"| Pooler
+    PrismaClient -.->|"Migrations (DIRECT_URL)"| DirectDB
     
     Pooler --> PostgresDB
     DirectDB --> PostgresDB
@@ -208,15 +208,15 @@ flowchart LR
         GitHubCloud["GitHub API & Webhook Service<br/>(REST v3 / HMAC SHA-256)"]
     end
 
-    Browser -->|HTTPS / TLS 1.3| EdgeProxy
-    EdgeProxy -->|Reverse Proxy / HTTP| NodeServer
+    Browser -->|"HTTPS / TLS 1.3"| EdgeProxy
+    EdgeProxy -->|"Reverse Proxy / HTTP"| NodeServer
     
-    NodeServer -->|Runtime Queries (DATABASE_URL)| PgBouncer
+    NodeServer -->|"Runtime Queries (DATABASE_URL)"| PgBouncer
     PgBouncer --> DirectPostgres
-    NodeServer -.->|Prisma Migrations (DIRECT_URL)| DirectPostgres
+    NodeServer -.->|"Prisma Migrations (DIRECT_URL)"| DirectPostgres
 
-    NodeServer <-->|OAuth 2.0 / API Calls| GitHubCloud
-    GitHubCloud -->|Signed Webhooks| EdgeProxy
+    NodeServer <-->|"OAuth 2.0 / API Calls"| GitHubCloud
+    GitHubCloud -->|"Signed Webhooks"| EdgeProxy
 ```
 
 The system is fully portable and can run on:
