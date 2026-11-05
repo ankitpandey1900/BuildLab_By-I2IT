@@ -8,7 +8,7 @@ export interface TeamMember {
   qualifications: string;
   teachingExperience: string;
   industryExperience: string;
-  specialization: string;
+  specialization: string[];
   description: string;
   image: string;
   professionalMemberships?: string[];
@@ -27,10 +27,16 @@ export const teamMembers: TeamMember[] = [
     qualifications: "PhD",
     teachingExperience: "14 years",
     industryExperience: "Nil",
-    specialization:
-      "GNSS, Space Weather, Web Geographic Information System, RS&GIS Applications in Urban Planning & Management, Agriculture",
+    specialization: [
+      "GNSS",
+      "Space Weather",
+      "Web GIS",
+      "Remote Sensing",
+      "Urban Planning",
+      "Agriculture",
+    ],
     description:
-      "Research interests include GNSS, space weather, geographic information systems, remote sensing, urban planning, and agricultural applications.",
+      "Specializes in GNSS, space weather, GIS, remote sensing, and their applications in urban planning and agriculture.",
     image: "/Dr-V-Rajesh-Chowdhary-1.webp",
     email: "vrajeshc@isquareit.edu.in",
     github: "https://github.com",
@@ -45,10 +51,18 @@ export const teamMembers: TeamMember[] = [
       "PhD (Computer Engineering), M.E. in CSE, B.E. in CSE",
     teachingExperience: "16.5 years",
     industryExperience: "3.5 years",
-    specialization:
-      "Machine Learning, Deep Learning, Artificial Intelligence, Data Science, Blockchain Technology, Image Processing, IoT, Data Mining",
+    specialization: [
+      "Machine Learning",
+      "Deep Learning",
+      "Artificial Intelligence",
+      "Data Science",
+      "Blockchain",
+      "IoT",
+      "Data Mining",
+      "Image Processing",
+    ],
     description:
-      "Research interests include machine learning, deep learning, artificial intelligence, data science, blockchain technology, image processing, IoT, and data mining.",
+      "Specializes in AI, machine learning, deep learning, data science, blockchain, and image processing.",
     image: "/Dr-Sonali-Sagar-Patil.webp",
     professionalMemberships: ["ISTE"],
     email: "sonalip@isquareit.edu.in",
@@ -64,13 +78,18 @@ export const teamMembers: TeamMember[] = [
       "PhD, M.Tech (Electronics and Telecommunication), BE in Industrial Electronics",
     teachingExperience: "18 years",
     industryExperience: "Nil",
-    specialization:
-      "Pattern Recognition, Image and Video Processing, Information Theory, Error Control Coding",
+    specialization: [
+      "Pattern Recognition",
+      "Image Processing",
+      "Video Processing",
+      "Information Theory",
+      "Error Control Coding",
+    ],
     description:
-      "Research interests include pattern recognition, image and video processing, information theory, and error control coding.",
+      "Specializes in pattern recognition, image and video processing, information theory, and error control coding.",
     image: "/Dr-Risil-Rameshbhai-Chhatrala-3.webp",
     email: "risilc@isquareit.edu.in",
-    github: "https://github.com",
+    github: "https://github.com/risil",
     linkedin: "https://linkedin.com",
   },
   {
@@ -81,9 +100,10 @@ export const teamMembers: TeamMember[] = [
     qualifications: "ME Communication Network",
     teachingExperience: "15 years",
     industryExperience: "05 months",
-    specialization: "Control System, Computer Network",
+    specialization: ["Control System", "Computer Network"],
     description:
-      "Areas of interest include control systems and computer networks.",
+      "Focuses on control systems, computer networks, and communication technologies.",
+
     image: "/Ms-Anjali-Anandrao-Jagtap-1.webp",
     email: "anjalij@isquareit.edu.in",
     github: "https://github.com",
@@ -97,7 +117,7 @@ export const teamMembers: TeamMember[] = [
     qualifications: "B.E. Information Technology",
     teachingExperience: "Exploring Web Scalable Systems , Will Figure out for teaching",
     industryExperience: "Freelance & Industry Projects",
-    specialization: "Pure Vibe Coder,Web Development, Devop's",
+    specialization: ["Pure Vibe Coder", "Web Development", "DevOps"],
     description:
       "I build products. Life ? Still in debugging mode.",
     portfolio: "ankitpandey19.vercel.app",
@@ -114,10 +134,16 @@ export const teamMembers: TeamMember[] = [
     qualifications: "B.E. Information Technology",
     teachingExperience: "",
     industryExperience: "",
-    specialization:
-      "React, TypeScript, Tailwind CSS, Responsive UI Development, Component Architecture & Frontend Integration",
+    specialization: [
+      "React",
+      "TypeScript",
+      "Tailwind CSS",
+      "Responsive UI",
+      "Component Architecture",
+      "Frontend Integration",
+    ],
     description:
-      "Develops responsive and scalable user interfaces, builds reusable frontend components, and integrates APIs to deliver seamless user experiences across the BuildLab platform.",
+      "Builds responsive interfaces and reusable frontend components for seamless user experiences.",
     image: "/ayushrohilla.webp",
     email: "ayushrohilla0807@gmail.com",
     github: "https://github.com/ayushrohilla0807-hash",
@@ -133,10 +159,16 @@ export const teamMembers: TeamMember[] = [
     qualifications: "B.E. Information Technology",
     teachingExperience: "",
     industryExperience: "",
-    specialization:
-      "Node.js, Authentication & Authorization, OAuth 2.0, Web Security, Database Management & API Security",
+    specialization: [
+      "Node.js",
+      "Authentication & Authorization",
+      "OAuth 2.0",
+      "Web Security",
+      "Database Management",
+      "API Security",
+    ],
     description:
-      "Builds reliable backend systems with a focus on authentication, authorization, and application security. Implements secure API workflows, manages access control, and helps maintain the integrity of platform data.",
+      "Develops secure backend systems with expertise in authentication, authorization, and API security.",
     image: "/abhishekhmondal.webp",
     portfolio: 'avii.in',
     email: "abhishekmondal444@gmail.com",
@@ -151,10 +183,17 @@ export const teamMembers: TeamMember[] = [
     qualifications: "B.E. Information Technology",
     teachingExperience: "",
     industryExperience: "",
-    specialization:
-      "Node.js, Express.js, PostgreSQL, Prisma ORM, REST APIs, Database Design & Backend Architecture",
+    specialization: [
+      "Node.js",
+      "Express.js",
+      "PostgreSQL",
+      "Prisma ORM",
+      "REST APIs",
+      "Database Design",
+      "Backend Architecture",
+    ],
     description:
-      "Develops secure and scalable backend services, designs efficient database architectures, and implements API integrations and server-side workflows that power BuildLab applications.",
+      "Builds secure & scalable backend services, designs databases, and develops efficient REST APIs.",
     image: "/",
     portfolio: 'ayushmusale.in',
     email: "aayushmusale05@gmail.com",

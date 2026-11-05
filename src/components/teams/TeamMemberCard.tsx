@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe, Award, Code } from "lucide-react";
+import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe, Award, Code, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TeamMember } from "@/data/teamsData";
+import { TechIcon } from "./TechIcon";
 
 function GitHubIcon() {
   return (
@@ -58,8 +59,20 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
   const hasGlow = controlledHasGlow !== undefined ? controlledHasGlow : prominent;
   const [imgSrc, setImgSrc] = useState(member.image);
   const [internalFlipped, setInternalFlipped] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const backArticleRef = useRef<HTMLElement>(null);
+
+  const hasEmail = Boolean(member.email && member.email.trim().length > 0);
+
+  const specializationSkills = Array.isArray(member.specialization)
+    ? member.specialization
+    : typeof member.specialization === "string"
+    ? (member.specialization as string)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 
   const isControlled = controlledFlipped !== undefined;
   const isFlipped = isControlled ? controlledFlipped : internalFlipped;
@@ -156,13 +169,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       external: true,
     });
   }
-
-  links.push({
-    href: member.email ? `mailto:${member.email}` : "mailto:team@buildlab.i2it.edu",
-    label: `Email ${member.name}`,
-    icon: MailIcon,
-    external: false,
-  });
 
   const roleInfo = {
     head: {
@@ -275,10 +281,17 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)] truncate">
                     {member.designation}
                   </p>
-                  <p className="text-xs text-[var(--text-tertiary)] line-clamp-1 max-w-md flex items-center gap-1.5">
-                    <Layers size={12} className="shrink-0 opacity-70" />
-                    <span className="truncate">{member.specialization}</span>
-                  </p>
+                  <div className="text-xs text-[var(--text-tertiary)] flex items-center gap-1.5 overflow-hidden line-clamp-1 max-w-md">
+                    {specializationSkills.map((skill, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 shrink-0 truncate">
+                        <TechIcon name={skill} className="w-3 h-3" />
+                        <span className="truncate">{skill}</span>
+                        {idx < specializationSkills.length - 1 && (
+                          <span className="text-[var(--text-tertiary)]/40 ml-1 select-none">•</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -398,9 +411,17 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                 Specialization
               </span>
               <span className="text-white/20 dark:text-white/20 select-none pt-0.5">|</span>
-              <span className="text-[var(--text-secondary)] line-clamp-2 break-words">
-                {member.specialization}
-              </span>
+              <div className="flex flex-wrap gap-1.5 pt-0.5 min-w-0">
+                {specializationSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-1 text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-all shadow-2xs"
+                  >
+                    <TechIcon name={skill} className="w-3.5 h-3.5" />
+                    <span>{skill}</span>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -437,6 +458,44 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   </a>
                 );
               })}
+
+              {/* Email Button with Hover Tooltip (No redirection to Gmail or mail client) */}
+              {hasEmail && (
+                <div className="relative group/email">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (member.email) {
+                        navigator.clipboard?.writeText(member.email);
+                        setCopiedEmail(true);
+                        setTimeout(() => setCopiedEmail(false), 2000);
+                      }
+                    }}
+                    aria-label={`Email: ${member.email}`}
+                    title={member.email}
+                    className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] transition-all hover:scale-105 hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] shadow-sm cursor-pointer"
+                  >
+                    {copiedEmail ? (
+                      <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+                    ) : (
+                      <MailIcon />
+                    )}
+                  </button>
+
+                  {/* Tooltip on hover displaying member's email */}
+                  <div
+                    role="tooltip"
+                    className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/email:flex group-focus-within/email:flex flex-col items-center z-30 transition-opacity duration-150"
+                  >
+                    <div className="whitespace-nowrap rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface-elevated)] px-3 py-1.5 text-xs font-mono text-[var(--text-pure)] shadow-xl shadow-black/40 flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-[var(--text-tertiary)] shrink-0" />
+                      <span>{copiedEmail ? "Copied to clipboard!" : member.email}</span>
+                    </div>
+                    <div className="w-2 h-2 -mt-1 rotate-45 border-r border-b border-[var(--border-default)] bg-[var(--bg-surface-elevated)]" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Flip back label */}
