@@ -18,7 +18,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^6.19.3",
     "better-auth": "^1.7.14",
     "clsx": "^2.1.1",
     "framer-motion": "^14.7.1",
@@ -36,10 +36,13 @@
     "autoprefixer": "^10.6.2",
     "mini-svg-data-uri": "^1.4.4",
     "postcss": "^8.5.32",
+    "prisma": "^6.19.3",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
-    "prisma": "^6.19.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true
   }
 }

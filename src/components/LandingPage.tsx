@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FolderGit2, 
   ArrowRight, 
-  ArrowUpRight, 
   GitBranch, 
   ShieldCheck, 
   Users, 
@@ -32,7 +31,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Project } from '@/types';
-import { ThemeToggle } from './ThemeToggle';
+import { LandingHeader } from './LandingHeader';
 import { TechBadge } from './ui/TechBadge';
 import { Spotlight } from './ui/spotlight';
 import { getMaturityColor } from '@/lib/utils';
@@ -530,56 +529,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-blue-500/25 selection:text-[var(--accent-primary)]">
       
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-50 bg-[var(--header-bg)] backdrop-blur-md border-b border-[var(--border-subtle)] transition-colors">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3 cursor-pointer group">
-            <motion.img 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              src="/icon.webp" 
-              alt="BuildLab" 
-              className="w-[36px] h-[36px] rounded-lg object-contain shrink-0 shadow-sm" 
-            />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm sm:text-base font-bold text-[var(--text-pure)] tracking-tight">BuildLab</span>
-                <span className="text-[10px] font-mono text-[var(--text-tertiary)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded-md bg-[var(--bg-surface-elevated)] whitespace-nowrap">by I2IT</span>
-              </div>
-              <span className="text-[10px] text-[var(--text-tertiary)] -mt-0.5 font-mono hidden sm:inline">Open-Source Campus Engineering</span>
-            </div>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-6 text-xs text-[var(--text-secondary)]">
-            <a href="#projects" className="hover:text-[var(--text-pure)] transition-colors cursor-pointer">Explore Projects</a>
-            <a href="#workflow" className="hover:text-[var(--text-pure)] transition-colors cursor-pointer">Engineering Workflow</a>
-            <a href="#faq" className="hover:text-[var(--text-pure)] transition-colors cursor-pointer">Guidelines & FAQ</a>
-          </nav>
-
-          <div className="flex items-center gap-2.5">
-            <ThemeToggle />
-
-            {isAuthenticated ? (
-              <Link 
-                href="/dashboard"
-                className="btn btn-primary btn-sm text-xs flex items-center gap-1.5 cursor-pointer font-medium"
-                title={userEmail ? `Signed in as ${userEmail}` : "Open Workspace"}
-              >
-                <span>Workspace</span>
-                <ArrowRight size={13} />
-              </Link>
-            ) : (
-              <Link 
-                href="/sign-up"
-                className="btn btn-primary btn-sm text-xs flex items-center gap-1.5 cursor-pointer font-medium"
-              >
-                <span>Join Community</span>
-                <ArrowUpRight size={13} />
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <LandingHeader isAuthenticated={isAuthenticated} userEmail={userEmail} />
 
       {/* Main Hero Section with Ambient Developer Workspace & Git Trust Layer */}
       <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[var(--border-subtle)]">
