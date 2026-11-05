@@ -316,19 +316,19 @@ flowchart TD
     end
 
     subgraph PoolerTier ["Supabase Managed Connection Layer"]
-        PgBouncer["PgBouncer Transaction Pooler<br/>Port 6543 | Max 50 conns | 10,000ms Timeout"]
-        DirectSocket["PostgreSQL Session Socket<br/>Port 5432 | Dedicated Direct Session"]
+        PgBouncer["PgBouncer Transaction Pooler<br/>Port 6543 • Max 50 conns • 10,000ms Timeout"]
+        DirectSocket["PostgreSQL Session Socket<br/>Port 5432 • Dedicated Direct Session"]
     end
 
     subgraph StorageTier ["Database Cluster"]
         PostgresCluster[("PostgreSQL 16 Primary Database<br/>(ACID Transactions / Row Locks)")]
     end
 
-    RuntimeOps -->|DATABASE_URL / Transaction Pooling| PgBouncer
-    MigrationOps -->|DIRECT_URL / Direct TCP Connection| DirectSocket
+    RuntimeOps -->|"DATABASE_URL / Transaction Pooling"| PgBouncer
+    MigrationOps -->|"DIRECT_URL / Direct TCP Connection"| DirectSocket
 
-    PgBouncer -->|Multiplexed Queries| PostgresCluster
-    DirectSocket -->|DDL Schema Sync| PostgresCluster
+    PgBouncer -->|"Multiplexed Queries"| PostgresCluster
+    DirectSocket -->|"DDL Schema Sync"| PostgresCluster
 ```
 
 ### Indexing Strategy

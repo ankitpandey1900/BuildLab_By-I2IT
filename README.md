@@ -30,9 +30,9 @@ GitHub remains the source of truth for repositories, issues, pull requests, and 
 
 ```mermaid
 flowchart LR
-    Browser["Student / Faculty Browser"] -->|HTTPS / TLS 1.3| NextApp["BuildLab Engine (Next.js 16)<br/>App Router & Route Handlers"]
-    NextApp -->|PgBouncer Pooler (Port 6543)| SupabaseDB[("PostgreSQL 16 Cluster<br/>Users, PRNs, Projects, Tasks")]
-    NextApp <-->|OAuth 2.0 & HMAC Webhooks| GitHubAPI["GitHub Platform<br/>Repos, PRs, Commits"]
+    Browser["Student / Faculty Browser"] -->|"HTTPS / TLS 1.3"| NextApp["BuildLab Engine (Next.js 16)<br/>App Router & Route Handlers"]
+    NextApp -->|"PgBouncer Pooler (Port 6543)"| SupabaseDB[("PostgreSQL 16 Cluster<br/>Users, PRNs, Projects, Tasks")]
+    NextApp <-->|"OAuth 2.0 & HMAC Webhooks"| GitHubAPI["GitHub Platform<br/>Repos, PRs, Commits"]
 ```
 
 ---

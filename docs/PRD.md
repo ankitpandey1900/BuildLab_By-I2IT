@@ -42,13 +42,13 @@ open source, a code execution service, or a popularity contest.
 flowchart LR
     subgraph Onboarding ["1. Access & Verification"]
         Login["GitHub Sign-In"] --> CheckStatus{"Campus Verified?"}
-        CheckStatus -->|No| Modal["Submit PRN / Roll No / Dept"]
+        CheckStatus -->|"No"| Modal["Submit PRN / Roll No / Dept"]
         Modal --> Review["Admin Review Desk"]
-        Review -->|Approved| Verified["Campus Verified Badge"]
+        Review -->|"Approved"| Verified["Campus Verified Badge"]
     end
 
     subgraph Discovery ["2. Discovery & Collaboration"]
-        CheckStatus -->|Yes| Directory["Campus Project Directory"]
+        CheckStatus -->|"Yes"| Directory["Campus Project Directory"]
         Verified --> Directory
         Directory --> SelectTask["Filter by Dept & Claim Task"]
         SelectTask --> Pitch["Submit Structured Pitch"]
