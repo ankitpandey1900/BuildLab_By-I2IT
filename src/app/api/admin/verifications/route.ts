@@ -1,25 +1,17 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAdminCaller } from "@/lib/admin-caller";
 
-const ALLOWED_ADMIN_ROLES = ["admin", "lead", "faculty", "reviewer"];
+const DEFAULT_FETCH_LIMIT = 50;
 
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    // In dev mode (direct access), allow checking the admin verification queue
-    if (session?.user) {
-      const caller = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { role: true },
-      });
-
-      if (!caller || !ALLOWED_ADMIN_ROLES.includes(caller.role.toLowerCase())) {
-        return NextResponse.json({ 
-          message: "Forbidden. Admin or reviewer privileges required to access verification queue." 
-        }, { status: 403 });
-      }
+    const adminCaller = await getAdminCaller();
+    if (!adminCaller) {
+      return NextResponse.json(
+        { message: "Forbidden. Admin or reviewer privileges required." },
+        { status: 403 }
+      );
     }
 
     const selectFields = {
@@ -28,6 +20,7 @@ export async function GET() {
       email: true,
       image: true,
       role: true,
+      bio: true,
       prnNumber: true,
       rollNumber: true,
       department: true,
@@ -37,6 +30,18 @@ export async function GET() {
       verifiedAt: true,
       createdAt: true,
       updatedAt: true,
+      verifiedBy: {
+        select: {
+          name: true,
+        },
+      },
+      accounts: {
+        where: { providerId: "github" },
+        select: {
+          accountId: true,
+        },
+        take: 1,
+      },
     };
 
     const db = prisma as any;
@@ -50,13 +55,13 @@ export async function GET() {
         where: { verificationStatus: "VERIFIED" },
         select: selectFields,
         orderBy: { verifiedAt: "desc" },
-        take: 50,
+        take: DEFAULT_FETCH_LIMIT,
       }),
       db.user.findMany({
         where: { verificationStatus: "REJECTED" },
         select: selectFields,
         orderBy: { updatedAt: "desc" },
-        take: 50,
+        take: DEFAULT_FETCH_LIMIT,
       }),
     ]);
 
@@ -66,4 +71,3 @@ export async function GET() {
     return NextResponse.json({ message: "Failed to fetch verifications." }, { status: 500 });
   }
 }
-

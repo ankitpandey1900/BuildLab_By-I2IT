@@ -3,11 +3,12 @@ node_modules/
 .pnp/
 .pnp.js
 
-# Production build outputs
+# Production build outputs & generated types
 .next/
 out/
 build/
 dist/
+next-env.d.ts
 
 # Local configuration, environment variables, & secrets
 .env
@@ -54,10 +55,18 @@ Desktop.ini
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# Local tooling & cache
+# Local tooling, test coverage & cache
 *.tsbuildinfo
 .turbo/
 .vercel
+.eslintcache
+coverage/
+.nyc_output/
+*.tmp
+*.temp
+*.swp
+*~
+.gemini/
 
 # AI Agent skills & local assistant tooling
 .agents/
