@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe } from "lucide-react";
+import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe, Award, Code } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TeamMember } from "@/data/teamsData";
 
@@ -161,15 +161,33 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
     external: false,
   });
 
-  const roleLabel =
-    member.role === "head" ? "HEAD" : member.role === "mentor" ? "MENTOR" : "TEAM";
+  const roleInfo = {
+    head: {
+      label: "Head",
+      icon: Award,
+      badgeStyle:
+        "bg-purple-500/10 text-purple-400 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.25)] ring-1 ring-purple-500/20",
+    },
+    mentor: {
+      label: "Mentor",
+      icon: GraduationCap,
+      badgeStyle:
+        "bg-amber-500/10 text-amber-400 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/20",
+    },
+    team: {
+      label: "Team",
+      icon: Code,
+      badgeStyle:
+        "bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/20",
+    },
+  }[member.role] || {
+    label: "Team",
+    icon: Code,
+    badgeStyle:
+      "bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/20",
+  };
 
-  const badgeStyle =
-    member.role === "team"
-      ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
-      : member.role === "mentor"
-      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-      : "bg-purple-500/15 text-purple-400 border-purple-500/30";
+  const RoleIcon = roleInfo.icon;
 
   // Format experience string
   const experienceParts = [
@@ -213,9 +231,9 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           style={{ backfaceVisibility: "hidden" }}
           className={`${
             !isFlipped ? "relative" : "absolute inset-0"
-          } w-full rounded-[1.6rem] border p-5 sm:p-6 sm:px-7 transition-colors duration-300 cursor-pointer select-none group [backface-visibility:hidden] flex items-center ${
+          } w-full rounded-[1.6rem] border p-5 sm:p-6 sm:px-7 transition-all duration-300 cursor-pointer select-none group [backface-visibility:hidden] flex items-center ${
             prominent
-              ? "border-[var(--border-default)] bg-[var(--bg-surface)]/95 shadow-xl shadow-black/25 hover:border-[var(--border-hover)]"
+              ? "border-white/35 bg-[var(--bg-surface)]/95 shadow-[0_0_25px_rgba(255,255,255,0.22),0_0_60px_rgba(255,255,255,0.1),0_12px_32px_rgba(0,0,0,0.4)] hover:border-white/50 hover:shadow-[0_0_35px_rgba(255,255,255,0.3),0_0_75px_rgba(255,255,255,0.15),0_16px_40px_rgba(0,0,0,0.5)]"
               : "border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 opacity-90 shadow-md hover:border-[var(--border-default)]"
           } ${isFlipped ? "pointer-events-none" : ""}`}
         >
@@ -237,9 +255,10 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider border ${badgeStyle}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] sm:text-xs font-medium border ${roleInfo.badgeStyle}`}
                   >
-                    {roleLabel}
+                    <RoleIcon size={12} className="shrink-0" />
+                    <span>{roleInfo.label}</span>
                   </span>
                 </div>
 
@@ -251,8 +270,9 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)] truncate">
                     {member.designation}
                   </p>
-                  <p className="text-xs text-[var(--text-tertiary)] line-clamp-1 max-w-md">
-                    {member.specialization}
+                  <p className="text-xs text-[var(--text-tertiary)] line-clamp-1 max-w-md flex items-center gap-1.5">
+                    <Layers size={12} className="shrink-0 opacity-70" />
+                    <span className="truncate">{member.specialization}</span>
                   </p>
                 </div>
               </div>
@@ -282,7 +302,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           }}
           className={`${
             isFlipped ? "relative" : "absolute inset-0"
-          } w-full rounded-[2rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-2xl shadow-black/30 cursor-pointer select-none [backface-visibility:hidden] flex flex-col justify-between ${
+          } w-full rounded-[2rem] border border-white/35 bg-[var(--bg-surface)] p-6 sm:p-8 shadow-[0_0_30px_rgba(255,255,255,0.22),0_0_70px_rgba(255,255,255,0.1),0_20px_48px_rgba(0,0,0,0.5)] cursor-pointer select-none [backface-visibility:hidden] flex flex-col justify-between ${
             !isFlipped ? "pointer-events-none" : ""
           }`}
         >
@@ -301,9 +321,10 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                     {member.name}
                   </h3>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider border ${badgeStyle}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${roleInfo.badgeStyle}`}
                   >
-                    {roleLabel}
+                    <RoleIcon size={12} className="shrink-0" />
+                    <span>{roleInfo.label}</span>
                   </span>
                 </div>
 
@@ -342,25 +363,33 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             </div>
 
             {/* Experience */}
-            <div className="flex items-center gap-3 text-xs sm:text-sm">
-              <Briefcase size={18} className="text-[var(--text-secondary)] shrink-0" />
-              <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0">
+            <div className="flex items-start gap-3 text-xs sm:text-sm">
+              <Briefcase size={18} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
+              <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0 pt-0.5">
                 Experience
               </span>
-              <span className="text-white/20 dark:text-white/20 select-none">|</span>
-              <span className="text-[var(--text-secondary)] truncate">
-                {experienceText}
-              </span>
+              <span className="text-white/20 dark:text-white/20 select-none pt-0.5">|</span>
+              <div className="text-[var(--text-secondary)] min-w-0 space-y-1 leading-snug">
+                {experienceParts.length > 0 ? (
+                  experienceParts.map((part, idx) => (
+                    <div key={idx} className="break-words">
+                      {part}
+                    </div>
+                  ))
+                ) : (
+                  <div>{member.teachingExperience || "N/A"}</div>
+                )}
+              </div>
             </div>
 
             {/* Specialization */}
-            <div className="flex items-center gap-3 text-xs sm:text-sm">
-              <Layers size={18} className="text-[var(--text-secondary)] shrink-0" />
-              <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0">
+            <div className="flex items-start gap-3 text-xs sm:text-sm">
+              <Layers size={18} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
+              <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0 pt-0.5">
                 Specialization
               </span>
-              <span className="text-white/20 dark:text-white/20 select-none">|</span>
-              <span className="text-[var(--text-secondary)] truncate">
+              <span className="text-white/20 dark:text-white/20 select-none pt-0.5">|</span>
+              <span className="text-[var(--text-secondary)] line-clamp-2 break-words">
                 {member.specialization}
               </span>
             </div>

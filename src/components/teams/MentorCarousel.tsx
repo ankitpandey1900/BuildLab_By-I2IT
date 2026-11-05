@@ -138,7 +138,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden py-4 outline-none select-none"
+      className="relative w-full overflow-hidden py-7 outline-none select-none"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setIsPaused(true)}
