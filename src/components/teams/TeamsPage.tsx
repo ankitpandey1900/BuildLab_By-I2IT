@@ -224,7 +224,7 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
 
         {/* Team Section */}
         <section
-          className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-4 sm:px-6 sm:pb-28"
+          className="relative mx-auto w-full max-w-6xl px-4 pb-28 pt-4 sm:px-6 sm:pb-36"
           aria-labelledby="team-heading"
         >
           <div className="mx-auto max-w-4xl mb-4">

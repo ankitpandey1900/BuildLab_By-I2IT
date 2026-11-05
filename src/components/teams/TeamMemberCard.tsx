@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Mail, RotateCw, GraduationCap, Briefcase, Layers } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TeamMember } from "@/data/teamsData";
@@ -51,6 +51,8 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 }) => {
   const [imgSrc, setImgSrc] = useState(member.image);
   const [internalFlipped, setInternalFlipped] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const backArticleRef = useRef<HTMLElement>(null);
 
   const isControlled = controlledFlipped !== undefined;
   const isFlipped = isControlled ? controlledFlipped : internalFlipped;
@@ -63,12 +65,53 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
     }
   }, [prominent, onFlipChange]);
 
+  // When card is clicked and flipped open, smoothly scroll page up or down so the card is centered vertically on screen
+  useEffect(() => {
+    if (!isFlipped) return;
+
+    const timeoutId = setTimeout(() => {
+      const cardEl = cardRef.current;
+      if (!cardEl) return;
+
+      const currentScrollY = window.scrollY || window.pageYOffset;
+      const rect = cardEl.getBoundingClientRect();
+      const cardTopInPage = currentScrollY + rect.top;
+
+      // When flipped, the back face article uses relative positioning and provides the true layout height
+      const cardHeight = backArticleRef.current?.offsetHeight || rect.height;
+      const viewportHeight = window.innerHeight;
+
+      // Calculate the target top offset so the card is centered vertically in viewport
+      const idealTopInViewport =
+        cardHeight + 32 > viewportHeight
+          ? 16
+          : (viewportHeight - cardHeight) / 2;
+
+      const targetScrollY = cardTopInPage - idealTopInViewport;
+      const finalScrollY = Math.max(0, targetScrollY);
+
+      if (Math.abs(currentScrollY - finalScrollY) > 4) {
+        const prefersReducedMotion =
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        window.scrollTo({
+          top: finalScrollY,
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+        });
+      }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [isFlipped]);
+
   const toggleFlip = (e?: React.MouseEvent) => {
+    // Only allow flipping if the card is the main focus of screen
+    if (!prominent) return;
+
     if (e) {
       e.stopPropagation();
     }
-    // Only allow flipping if the card is the main focus of screen
-    if (!prominent) return;
 
     const nextFlipped = !isFlipped;
     if (!isControlled) {
@@ -125,6 +168,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
   return (
     <motion.div
+      ref={cardRef}
       layout
       className="relative w-full [perspective:1400px]"
       transition={{ layout: { duration: 0.45, ease: [0.23, 1, 0.32, 1] } }}
@@ -210,6 +254,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             Shown when clicked, matching the user reference design!
            ========================================= */}
         <article
+          ref={backArticleRef}
           onClick={toggleFlip}
           style={{
             transform: "rotateY(180deg)",
