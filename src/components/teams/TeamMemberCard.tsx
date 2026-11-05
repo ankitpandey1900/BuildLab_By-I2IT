@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Mail, RotateCw, GraduationCap, Briefcase, Layers } from "lucide-react";
+import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TeamMember } from "@/data/teamsData";
 
@@ -27,6 +27,10 @@ function LinkedInIcon() {
 
 function MailIcon() {
   return <Mail className="h-4 w-4" aria-hidden="true" />;
+}
+
+function GlobeIcon() {
+  return <Globe className="h-4 w-4" aria-hidden="true" />;
 }
 
 interface TeamMemberCardProps {
@@ -133,13 +137,29 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       icon: LinkedInIcon,
       external: true,
     },
-    {
-      href: member.email ? `mailto:${member.email}` : "mailto:team@buildlab.i2it.edu",
-      label: `Email ${member.name}`,
-      icon: MailIcon,
-      external: false,
-    },
   ];
+
+  if (member.portfolio) {
+    const portfolioUrl =
+      member.portfolio.startsWith("http://") ||
+      member.portfolio.startsWith("https://")
+        ? member.portfolio
+        : `https://${member.portfolio}`;
+
+    links.push({
+      href: portfolioUrl,
+      label: `${member.name}'s Portfolio`,
+      icon: GlobeIcon,
+      external: true,
+    });
+  }
+
+  links.push({
+    href: member.email ? `mailto:${member.email}` : "mailto:team@buildlab.i2it.edu",
+    label: `Email ${member.name}`,
+    icon: MailIcon,
+    external: false,
+  });
 
   const roleLabel =
     member.role === "head" ? "HEAD" : member.role === "mentor" ? "MENTOR" : "TEAM";
@@ -369,6 +389,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                     key={item.label}
                     href={item.href}
                     aria-label={item.label}
+                    title={item.label}
                     onClick={(e) => e.stopPropagation()}
                     target={item.external ? "_blank" : undefined}
                     rel={item.external ? "noreferrer" : undefined}

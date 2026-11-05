@@ -12,6 +12,7 @@ export interface TeamMember {
   description: string;
   image: string;
   professionalMemberships?: string[];
+  portfolio?: string;
   github?: string;
   linkedin?: string;
   email?: string;
@@ -94,12 +95,12 @@ export const teamMembers: TeamMember[] = [
     name: "Ankit Pandey",
     designation: "Lead Developer",
     qualifications: "B.E. Information Technology",
-    teachingExperience: "",
-    industryExperience: "",
-    specialization:
-      "Frontend Architecture, React, TypeScript, UI/UX Engineering, Design Systems, Code Quality & Accessibility",
+    teachingExperience: "Exploring Web Scalable Systems , Will Figure out for teaching",
+    industryExperience: "Freelance & Industry Projects",
+    specialization: "Pure Vibe Coder,Web Development, Devop's",
     description:
-      "Leads technical development and architectural decisions, coordinates frontend implementation, establishes development standards, and ensures consistency, maintainability, and quality across the BuildLab platform.",
+      "I build products. Life ? Still in debugging mode.",
+    portfolio: "ankitpandey19.vercel.app",
     image: "/ankitpandey.webp",
     email: "ankit1pandey11@gmail.com",
     github: "http://github.com/ankitpandey1900",
@@ -137,6 +138,7 @@ export const teamMembers: TeamMember[] = [
     description:
       "Builds reliable backend systems with a focus on authentication, authorization, and application security. Implements secure API workflows, manages access control, and helps maintain the integrity of platform data.",
     image: "/abhishekhmondal.webp",
+    portfolio: 'avii.in',
     email: "abhishekmondal444@gmail.com",
     github: "https://github.com/code-with-avii",
     linkedin: "https://www.linkedin.com/in/abhishekh07/",
@@ -154,6 +156,7 @@ export const teamMembers: TeamMember[] = [
     description:
       "Develops secure and scalable backend services, designs efficient database architectures, and implements API integrations and server-side workflows that power BuildLab applications.",
     image: "/",
+    portfolio: 'ayushmusale.in',
     email: "aayushmusale05@gmail.com",
     github: "https://github.com/ayushmusale",
     linkedin: "https://www.linkedin.com/in/ayushmusale/",
