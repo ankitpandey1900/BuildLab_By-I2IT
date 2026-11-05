@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Users } from "lucide-react";
 import { motion } from "framer-motion";
@@ -43,6 +43,59 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
   const head = getTeamHead();
   const mentors = getTeamMentors();
   const team = getTeamList();
+
+  const [activeSection, setActiveSection] = useState<"head" | "mentors" | "team">("head");
+  const headRef = useRef<HTMLDivElement>(null);
+  const mentorsRef = useRef<HTMLDivElement>(null);
+  const teamRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let ticking = false;
+
+    const updateActiveSection = () => {
+      const viewportCenter = window.innerHeight / 2;
+
+      const sections: { id: "head" | "mentors" | "team"; el: HTMLElement | null }[] = [
+        { id: "head", el: headRef.current },
+        { id: "mentors", el: mentorsRef.current },
+        { id: "team", el: teamRef.current },
+      ];
+
+      let closestSection: "head" | "mentors" | "team" = "head";
+      let minDistance = Infinity;
+
+      for (const section of sections) {
+        if (!section.el) continue;
+        const rect = section.el.getBoundingClientRect();
+        const sectionCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(sectionCenter - viewportCenter);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestSection = section.id;
+        }
+      }
+
+      setActiveSection(closestSection);
+      ticking = false;
+    };
+
+    const onScrollOrResize = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateActiveSection);
+        ticking = true;
+      }
+    };
+
+    updateActiveSection();
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-blue-500/25 selection:text-[var(--accent-primary)] overflow-x-hidden">
@@ -196,13 +249,15 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
               <span>Head</span>
             </h2>
           </div>
-          {head ? (
-            <HeadProfile member={head} />
-          ) : (
-            <p className="text-center text-sm text-[var(--text-secondary)]">
-              The team head profile will appear here.
-            </p>
-          )}
+          <div ref={headRef}>
+            {head ? (
+              <HeadProfile member={head} hasGlow={activeSection === "head"} />
+            ) : (
+              <p className="text-center text-sm text-[var(--text-secondary)]">
+                The team head profile will appear here.
+              </p>
+            )}
+          </div>
         </section>
 
         {/* Mentors Section */}
@@ -219,7 +274,13 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
               <span>Mentors</span>
             </h2>
           </div>
-          <MentorCarousel members={mentors} id="mentors" />
+          <div ref={mentorsRef}>
+            <MentorCarousel
+              members={mentors}
+              id="mentors"
+              hasGlow={activeSection === "mentors"}
+            />
+          </div>
         </section>
 
         {/* Team Section */}
@@ -236,7 +297,13 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
               <span>Team</span>
             </h2>
           </div>
-          <MentorCarousel members={team} id="team" />
+          <div ref={teamRef}>
+            <MentorCarousel
+              members={team}
+              id="team"
+              hasGlow={activeSection === "team"}
+            />
+          </div>
         </section>
       </main>
 

@@ -10,12 +10,14 @@ interface MentorCarouselProps {
   members?: TeamMember[];
   mentors?: TeamMember[];
   id?: string;
+  hasGlow?: boolean;
 }
 
 export const MentorCarousel: React.FC<MentorCarouselProps> = ({
   members,
   mentors,
   id = "mentors",
+  hasGlow = true,
 }) => {
   const memberList = members || mentors || [];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -138,7 +140,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden py-4 outline-none select-none"
+      className="relative w-full overflow-hidden py-7 outline-none select-none"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setIsPaused(true)}
@@ -204,6 +206,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
               <TeamMemberCard
                 member={member}
                 prominent={isActive}
+                hasGlow={isActive && hasGlow}
                 isFlipped={isActive && flippedIndex === index}
                 onFlipChange={(flipped) => {
                   if (isActive) {
