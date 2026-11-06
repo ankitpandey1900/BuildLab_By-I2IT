@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { BentoGrid, BentoGridItem } from './ui/bento-grid';
 import { TechBadge } from './ui/TechBadge';
+import { TechIcon } from './ui/TechIcon';
 import { getMaturityColor } from '../lib/utils';
 
 const getRoleMicroIcon = (categoryOrRole?: string) => {
@@ -181,11 +182,12 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         {allSkills.slice(0, 8).map(skill => (
           <button
             key={skill}
-            className={`status-pill ${selectedSkill === skill ? 'active' : ''}`}
+            className={`status-pill flex items-center gap-1.5 ${selectedSkill === skill ? 'active' : ''}`}
             style={{ fontSize: '11px', padding: '2px 8px' }}
             onClick={() => setSelectedSkill(selectedSkill === skill ? null : skill)}
           >
-            {skill}
+            <TechIcon name={skill} className="w-3 h-3" />
+            <span>{skill}</span>
           </button>
         ))}
       </div>

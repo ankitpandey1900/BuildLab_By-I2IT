@@ -75,7 +75,7 @@ export const teamMembers: TeamMember[] = [
     name: "Prof. (Dr.) Risil Chhatrala",
     designation: "Associate Professor",
     qualifications:
-      "PhD, M.Tech (Electronics and Telecommunication), BE in Industrial Electronics",
+      "PhD, M.Tech (EnTC), BE in Industrial Electronics",
     teachingExperience: "18 years",
     industryExperience: "Nil",
     specialization: [
