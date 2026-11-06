@@ -17,3 +17,11 @@ export const canManagePlatform = (role: string) => role === "moderator" || role 
 export const canReviewSupport = (role: string) => role === "reviewer" || canManagePlatform(role);
 export const canVerifyStudents = (role: string) => 
   ALLOWED_ADMIN_ROLES.some((allowed) => allowed.toLowerCase() === (role || "").toLowerCase());
+
+/**
+ * Role-change authorization policy:
+ * Only users with the "admin" role have permission to promote, demote, or change user roles.
+ */
+export const canChangeUserRole = (role: string) => (role || "").toLowerCase() === "admin";
+export const canElevateRoles = (role: string) => canChangeUserRole(role);
+
