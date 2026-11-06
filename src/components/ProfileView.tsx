@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { CardSpotlight } from './ui/card-spotlight';
 import { TechBadge } from './ui/TechBadge';
+import { TechIcon } from './ui/TechIcon';
 
 interface ProfileViewProps {
   user: StudentProfile;
@@ -783,8 +784,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             ) : (
               <div className="flex items-center gap-2 flex-wrap">
                 {user.interests.map(int => (
-                  <span key={int} className="badge-tag text-xs py-1 px-3">
-                    {int}
+                  <span key={int} className="badge-tag text-xs py-1 px-3 inline-flex items-center gap-1.5">
+                    <TechIcon name={int} className="w-3.5 h-3.5" />
+                    <span>{int}</span>
                   </span>
                 ))}
               </div>

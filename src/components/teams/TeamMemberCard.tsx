@@ -2,36 +2,25 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe, Award, Code, Check } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import type { TeamMember } from "@/data/teamsData";
 import { TechIcon } from "./TechIcon";
 
 function GitHubIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-      />
-    </svg>
-  );
+  return <Icon icon="simple-icons:github" className="h-4 w-4" strokeWidth={2} style={{ strokeWidth: 2 }} aria-hidden="true" />;
 }
 
 function LinkedInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8.5h4V24h-4V8.5zM8.5 8.5h3.8v2.1h.05c.53-1 1.84-2.1 3.79-2.1 4.06 0 4.81 2.67 4.81 6.15V24h-4v-7.7c0-1.84-.03-4.2-2.56-4.2-2.56 0-2.95 2-2.95 4.06V24h-4V8.5z" />
-    </svg>
-  );
+  return <Icon icon="simple-icons:linkedin" className="h-4 w-4" strokeWidth={2} style={{ strokeWidth: 2 }} aria-hidden="true" />;
 }
 
 function MailIcon() {
-  return <Mail className="h-4 w-4" aria-hidden="true" />;
+  return <Mail className="h-4 w-4" strokeWidth={2} aria-hidden="true" />;
 }
 
 function GlobeIcon() {
-  return <Globe className="h-4 w-4" aria-hidden="true" />;
+  return <Globe className="h-4 w-4" strokeWidth={2} aria-hidden="true" />;
 }
 
 interface TeamMemberCardProps {
@@ -268,7 +257,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] sm:text-xs font-medium border ${roleInfo.badgeStyle}`}
                   >
-                    <RoleIcon size={12} className="shrink-0" />
+                    <RoleIcon size={12} strokeWidth={2} className="shrink-0" />
                     <span>{roleInfo.label}</span>
                   </span>
                 </div>
@@ -277,18 +266,18 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   {member.name}
                 </h3>
 
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)] truncate">
                     {member.designation}
                   </p>
-                  <div className="text-xs text-[var(--text-tertiary)] flex items-center gap-1.5 overflow-hidden line-clamp-1 max-w-md">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     {specializationSkills.map((skill, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 shrink-0 truncate">
-                        <TechIcon name={skill} className="w-3 h-3" />
-                        <span className="truncate">{skill}</span>
-                        {idx < specializationSkills.length - 1 && (
-                          <span className="text-[var(--text-tertiary)]/40 ml-1 select-none">•</span>
-                        )}
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/70 px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
+                      >
+                        <TechIcon name={skill} className="w-3 h-3" strokeWidth={2} />
+                        <span>{skill}</span>
                       </span>
                     ))}
                   </div>
@@ -302,7 +291,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
               onClick={toggleFlip}
               className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] group-hover:text-[var(--text-pure)] group-hover:border-[var(--border-hover)] transition-all shrink-0 shadow-sm"
             >
-              <RotateCw size={14} className="transition-transform duration-300 group-hover:rotate-45" />
+              <RotateCw size={14} strokeWidth={2} className="transition-transform duration-300 group-hover:rotate-45" />
             </button>
           </div>
         </article>
@@ -345,7 +334,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${roleInfo.badgeStyle}`}
                   >
-                    <RoleIcon size={12} className="shrink-0" />
+                    <RoleIcon size={12} strokeWidth={2} className="shrink-0" />
                     <span>{roleInfo.label}</span>
                   </span>
                 </div>
@@ -363,7 +352,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
               title="Flip back"
               className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-all shrink-0 shadow-sm"
             >
-              <RotateCw size={15} />
+              <RotateCw size={15} strokeWidth={2} />
             </button>
           </div>
 
@@ -374,7 +363,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           <div className="space-y-3 sm:space-y-3.5 my-auto shrink-0">
             {/* Qualification */}
             <div className="flex items-center gap-3 text-xs sm:text-sm">
-              <GraduationCap size={18} className="text-[var(--text-secondary)] shrink-0" />
+              <GraduationCap size={18} strokeWidth={2} className="text-[var(--text-secondary)] shrink-0" />
               <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0">
                 Qualification
               </span>
@@ -386,7 +375,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
             {/* Experience */}
             <div className="flex items-start gap-3 text-xs sm:text-sm">
-              <Briefcase size={18} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
+              <Briefcase size={18} strokeWidth={2} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
               <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0 pt-0.5">
                 Experience
               </span>
@@ -406,7 +395,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
             {/* Specialization */}
             <div className="flex items-start gap-3 text-xs sm:text-sm">
-              <Layers size={18} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
+              <Layers size={18} strokeWidth={2} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
               <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0 pt-0.5">
                 Specialization
               </span>
@@ -417,7 +406,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                     key={idx}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-1 text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-all shadow-2xs"
                   >
-                    <TechIcon name={skill} className="w-3.5 h-3.5" />
+                    <TechIcon name={skill} className="w-3.5 h-3.5" strokeWidth={2} />
                     <span>{skill}</span>
                   </span>
                 ))}
@@ -477,7 +466,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                     className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] transition-all hover:scale-105 hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] shadow-sm cursor-pointer"
                   >
                     {copiedEmail ? (
-                      <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+                      <Check className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden="true" />
                     ) : (
                       <MailIcon />
                     )}
@@ -489,7 +478,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                     className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/email:flex group-focus-within/email:flex flex-col items-center z-30 transition-opacity duration-150"
                   >
                     <div className="whitespace-nowrap rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface-elevated)] px-3 py-1.5 text-xs font-mono text-[var(--text-pure)] shadow-xl shadow-black/40 flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-[var(--text-tertiary)] shrink-0" />
+                      <Mail className="h-3.5 w-3.5 text-[var(--text-tertiary)] shrink-0" strokeWidth={2} />
                       <span>{copiedEmail ? "Copied to clipboard!" : member.email}</span>
                     </div>
                     <div className="w-2 h-2 -mt-1 rotate-45 border-r border-b border-[var(--border-default)] bg-[var(--bg-surface-elevated)]" />
@@ -504,7 +493,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
               onClick={toggleFlip}
               className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--text-tertiary)] hover:text-[var(--text-pure)] transition-colors cursor-pointer"
             >
-              <RotateCw size={13} />
+              <RotateCw size={13} strokeWidth={2} />
               <span>Flip back</span>
             </button>
           </div>
