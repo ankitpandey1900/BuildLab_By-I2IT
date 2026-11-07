@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, PanInfo } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TeamMember } from "@/data/teamsData";
 import { TeamMemberCard } from "./TeamMemberCard";
 import { CarouselIndicators } from "./CarouselIndicators";
@@ -77,7 +78,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
     const timer = setInterval(() => {
       setFlippedIndex(null);
       setActiveIndex((prev) => (prev + 1) % total);
-    }, 3000);
+    }, 4800);
 
     return () => clearInterval(timer);
   }, [total, isPaused, isDragging, isCardFlipped, activeIndex]);
@@ -140,7 +141,7 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden py-7 outline-none select-none"
+      className="relative w-full overflow-hidden py-7 outline-none select-none group"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setIsPaused(true)}
@@ -151,6 +152,34 @@ export const MentorCarousel: React.FC<MentorCarouselProps> = ({
       aria-roledescription="carousel"
       aria-label={`${id} Carousel - Swipe left or right to change, or click cards to view details`}
     >
+      {/* Desktop Floating Navigation Chevrons */}
+      {total > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
+            aria-label="Previous profile"
+            className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/90 text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)] backdrop-blur-md shadow-lg shadow-black/15 transition-all opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer focus:opacity-100"
+          >
+            <ChevronLeft size={18} strokeWidth={2.2} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            aria-label="Next profile"
+            className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/90 text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)] backdrop-blur-md shadow-lg shadow-black/15 transition-all opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer focus:opacity-100"
+          >
+            <ChevronRight size={18} strokeWidth={2.2} />
+          </button>
+        </>
+      )}
+
       {/* Animated track with touch & mouse drag swipe */}
       <motion.div
         className="flex items-center cursor-grab active:cursor-grabbing"
