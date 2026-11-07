@@ -38,7 +38,7 @@ const ambientCodeSnippets = [
   'git push origin feat/cellular-fallback-sim800l',
 ];
 
-export const TeamsPage: React.FC<TeamsPageProps> = () => {
+export const TeamsPage: React.FC<TeamsPageProps> = ({ isAuthenticated = false, userEmail }) => {
   const head = getTeamHead();
   const mentors = getTeamMentors();
   const team = getTeamList();
@@ -468,12 +468,22 @@ export const TeamsPage: React.FC<TeamsPageProps> = () => {
             </span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 text-[11.5px] sm:gap-6">
-            <Link href="/sign-in" className="transition-colors hover:text-[var(--text-primary)]">
-              Sign in
-            </Link>
-            <Link href="/sign-up" className="transition-colors hover:text-[var(--text-primary)]">
-              Register
-            </Link>
+            {!isAuthenticated ? (
+              <>
+                <Link href="/sign-in" className="transition-colors hover:text-[var(--text-primary)]">
+                  Sign in
+                </Link>
+                <Link href="/sign-up" className="transition-colors hover:text-[var(--text-primary)]">
+                  Register
+                </Link>
+              </>
+            ) : (
+              userEmail && (
+                <span className="font-mono text-[11px] text-[var(--text-tertiary)]">
+                  {userEmail}
+                </span>
+              )
+            )}
             <Link href="/dashboard" className="transition-colors hover:text-[var(--text-primary)]">
               Workspace
             </Link>

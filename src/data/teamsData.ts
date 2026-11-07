@@ -133,7 +133,7 @@ export const teamMembers: TeamMember[] = [
     portfolio: "ankitpandey19.vercel.app",
     image: "/ankitpandey.webp",
     email: "ankit1pandey11@gmail.com",
-    github: "http://github.com/ankitpandey1900",
+    github: "https://github.com/ankitpandey1900",
     linkedin: "https://www.linkedin.com/in/ankitpandey1900/",
   },
   {
@@ -159,8 +159,6 @@ export const teamMembers: TeamMember[] = [
     github: "https://github.com/ayushrohilla0807-hash",
     linkedin: "https://www.linkedin.com/in/ayush-rohilla0807",
   },
-
-
   {
     id: "abhishek-mondal",
     role: "team",

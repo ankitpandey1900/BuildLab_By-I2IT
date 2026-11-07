@@ -250,11 +250,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       : null,
   ].filter(Boolean);
 
-  const experienceText =
-    experienceParts.length > 0
-      ? experienceParts.join(" • ")
-      : member.teachingExperience || "N/A";
-
   return (
     <motion.div
       ref={cardRef}
