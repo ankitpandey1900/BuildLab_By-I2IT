@@ -70,106 +70,14 @@ export const ThemeToggle: React.FC = () => {
     };
   }, [isOpen]);
 
-  const switchTheme = (newTheme: ThemeMode, event?: React.MouseEvent) => {
+  const switchTheme = (newTheme: ThemeMode) => {
     if (newTheme === theme) {
       setIsOpen(false);
       return;
     }
-
-    const btn = event?.currentTarget || containerRef.current;
-    const rect = btn?.getBoundingClientRect();
-    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
-    const y = rect ? rect.top + rect.height / 2 : 0;
-
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    );
-
-    const isDiverge = newTheme === "light" || (theme === "dark" && newTheme === "eye protect");
-    const doc = document as any;
-
-    if (typeof doc.startViewTransition === "function") {
-      if (!isDiverge) {
-        document.documentElement.classList.add("theme-transition-converge");
-      } else {
-        document.documentElement.classList.remove("theme-transition-converge");
-      }
-
-      const transition = doc.startViewTransition(() => {
-        setTheme(newTheme);
-        applyThemeToDOM(newTheme);
-        setIsOpen(false);
-      });
-
-      transition.ready.then(() => {
-        const clipPath = [
-          `circle(0px at ${x}px ${y}px)`,
-          `circle(${endRadius}px at ${x}px ${y}px)`
-        ];
-
-        const anim = document.documentElement.animate(
-          {
-            clipPath: isDiverge ? clipPath : [...clipPath].reverse()
-          },
-          {
-            duration: 480,
-            easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-            pseudoElement: isDiverge ? "::view-transition-new(root)" : "::view-transition-old(root)"
-          }
-        );
-
-        anim.onfinish = () => {
-          document.documentElement.classList.remove("theme-transition-converge");
-        };
-      });
-    } else {
-      triggerRippleWave(newTheme, x, y, isDiverge, endRadius);
-      setIsOpen(false);
-    }
-  };
-
-  const triggerRippleWave = (
-    newTheme: ThemeMode,
-    x: number,
-    y: number,
-    isDiverge: boolean,
-    endRadius: number
-  ) => {
-    const overlay = document.createElement("div");
-    const targetBg = newTheme === "light" ? "#fcfcfd" : newTheme === "eye protect" ? "#201811" : "#09090b";
-
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.zIndex = "999999";
-    overlay.style.pointerEvents = "none";
-    overlay.style.backgroundColor = targetBg;
-    overlay.style.transition = "clip-path 420ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease";
-
-    if (isDiverge) {
-      overlay.style.clipPath = `circle(0px at ${x}px ${y}px)`;
-      document.body.appendChild(overlay);
-
-      requestAnimationFrame(() => {
-        overlay.style.clipPath = `circle(${endRadius}px at ${x}px ${y}px)`;
-        setTimeout(() => {
-          setTheme(newTheme);
-          applyThemeToDOM(newTheme);
-          overlay.style.opacity = "0";
-          setTimeout(() => overlay.remove(), 150);
-        }, 360);
-      });
-    } else {
-      overlay.style.clipPath = `circle(${endRadius}px at ${x}px ${y}px)`;
-      document.body.appendChild(overlay);
-
-      requestAnimationFrame(() => {
-        setTheme(newTheme);
-        applyThemeToDOM(newTheme);
-        overlay.style.clipPath = `circle(0px at ${x}px ${y}px)`;
-        setTimeout(() => overlay.remove(), 420);
-      });
-    }
+    setTheme(newTheme);
+    applyThemeToDOM(newTheme);
+    setIsOpen(false);
   };
 
   const themeOptions: ThemeOption[] = [
@@ -227,7 +135,7 @@ export const ThemeToggle: React.FC = () => {
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={(e) => switchTheme(opt.id, e)}
+                  onClick={() => switchTheme(opt.id)}
                   className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     isSelected
                       ? "bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs"

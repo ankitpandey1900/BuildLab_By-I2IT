@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, GraduationCap, Briefcase, Layers, Globe, Award, Code, Check, X, ArrowUpRight, ArrowLeft } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
@@ -102,8 +102,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
   const showFallbackAvatar = !imgSrc || imgError;
   const [internalFlipped, setInternalFlipped] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const backArticleRef = useRef<HTMLElement>(null);
 
   const hasEmail = Boolean(member.email && member.email.trim().length > 0);
 
@@ -126,46 +124,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       onFlipChange?.(false);
     }
   }, [prominent, onFlipChange]);
-
-  // When card is clicked and flipped open, smoothly scroll page up or down so the card is centered vertically on screen
-  useEffect(() => {
-    if (!isFlipped) return;
-
-    const timeoutId = setTimeout(() => {
-      const cardEl = cardRef.current;
-      if (!cardEl) return;
-
-      const currentScrollY = window.scrollY || window.pageYOffset;
-      const rect = cardEl.getBoundingClientRect();
-      const cardTopInPage = currentScrollY + rect.top;
-
-      // When flipped, the back face article uses relative positioning and provides the true layout height
-      const cardHeight = backArticleRef.current?.offsetHeight || rect.height;
-      const viewportHeight = window.innerHeight;
-
-      // Calculate the target top offset so the card is centered vertically in viewport
-      const idealTopInViewport =
-        cardHeight + 32 > viewportHeight
-          ? 16
-          : (viewportHeight - cardHeight) / 2;
-
-      const targetScrollY = cardTopInPage - idealTopInViewport;
-      const finalScrollY = Math.max(0, targetScrollY);
-
-      if (Math.abs(currentScrollY - finalScrollY) > 4) {
-        const prefersReducedMotion =
-          typeof window !== "undefined" &&
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-        window.scrollTo({
-          top: finalScrollY,
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-        });
-      }
-    }, 50);
-
-    return () => clearTimeout(timeoutId);
-  }, [isFlipped]);
 
   const toggleFlip = (e?: React.MouseEvent) => {
     // Only allow flipping if the card is the main focus of screen
@@ -252,7 +210,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
   return (
     <motion.div
-      ref={cardRef}
       layout
       className="relative w-full [perspective:1400px]"
       transition={{ layout: { duration: 0.45, ease: [0.23, 1, 0.32, 1] } }}
@@ -361,41 +318,28 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                       );
                     })}
 
-                    {/* 1-Click Email Copy with Instant Micro-Tooltip */}
+                    {/* 1-Click Email Copy */}
                     {hasEmail && (
-                      <div className="relative group/front-email">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (member.email) {
-                              navigator.clipboard?.writeText(member.email);
-                              setCopiedEmail(true);
-                              setTimeout(() => setCopiedEmail(false), 2000);
-                            }
-                          }}
-                          aria-label={`Copy email for ${member.name}`}
-                          title={`Copy ${member.email}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/90 text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] hover:scale-105 transition-all shadow-2xs cursor-pointer"
-                        >
-                          {copiedEmail ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} aria-hidden="true" />
-                          ) : (
-                            <MailIcon />
-                          )}
-                        </button>
-
-                        <div
-                          role="tooltip"
-                          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/front-email:flex group-focus-within/front-email:flex flex-col items-center z-30 transition-opacity duration-150"
-                        >
-                          <div className="whitespace-nowrap rounded-md border border-[var(--border-default)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-[10.5px] font-mono text-[var(--text-pure)] shadow-lg shadow-black/30 flex items-center gap-1">
-                            <Mail className="h-3 w-3 text-sky-400 shrink-0" strokeWidth={2} />
-                            <span>{copiedEmail ? "Copied to clipboard!" : member.email}</span>
-                          </div>
-                          <div className="w-1.5 h-1.5 -mt-0.5 rotate-45 border-r border-b border-[var(--border-default)] bg-[var(--bg-surface-elevated)]" />
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (member.email) {
+                            navigator.clipboard?.writeText(member.email);
+                            setCopiedEmail(true);
+                            setTimeout(() => setCopiedEmail(false), 2000);
+                          }
+                        }}
+                        aria-label={`Copy email for ${member.name}`}
+                        title={copiedEmail ? "Copied to clipboard!" : `Copy ${member.email}`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/90 text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] hover:scale-105 transition-all shadow-2xs cursor-pointer"
+                      >
+                        {copiedEmail ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} aria-hidden="true" />
+                        ) : (
+                          <MailIcon />
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -424,7 +368,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             Shown when clicked, matching the user reference design!
            ========================================= */}
         <article
-          ref={backArticleRef}
           onClick={toggleFlip}
           style={{
             transform: "rotateY(180deg)",
@@ -581,42 +524,28 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                 );
               })}
 
-              {/* Email Button with Hover Tooltip (No redirection to Gmail or mail client) */}
+              {/* Email Button */}
               {hasEmail && (
-                <div className="relative group/email">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (member.email) {
-                        navigator.clipboard?.writeText(member.email);
-                        setCopiedEmail(true);
-                        setTimeout(() => setCopiedEmail(false), 2000);
-                      }
-                    }}
-                    aria-label={`Email: ${member.email}`}
-                    title={member.email}
-                    className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] transition-all hover:scale-105 hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] shadow-sm cursor-pointer"
-                  >
-                    {copiedEmail ? (
-                      <Check className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden="true" />
-                    ) : (
-                      <MailIcon />
-                    )}
-                  </button>
-
-                  {/* Tooltip on hover displaying member's email */}
-                  <div
-                    role="tooltip"
-                    className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/email:flex group-focus-within/email:flex flex-col items-center z-30 transition-opacity duration-150"
-                  >
-                    <div className="whitespace-nowrap rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface-elevated)] px-3 py-1.5 text-xs font-mono text-[var(--text-pure)] shadow-xl shadow-black/40 flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-[var(--text-tertiary)] shrink-0" strokeWidth={2} />
-                      <span>{copiedEmail ? "Copied to clipboard!" : member.email}</span>
-                    </div>
-                    <div className="w-2 h-2 -mt-1 rotate-45 border-r border-b border-[var(--border-default)] bg-[var(--bg-surface-elevated)]" />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (member.email) {
+                      navigator.clipboard?.writeText(member.email);
+                      setCopiedEmail(true);
+                      setTimeout(() => setCopiedEmail(false), 2000);
+                    }
+                  }}
+                  aria-label={`Email: ${member.email}`}
+                  title={copiedEmail ? "Copied to clipboard!" : member.email}
+                  className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] transition-all hover:scale-105 hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] shadow-sm cursor-pointer"
+                >
+                  {copiedEmail ? (
+                    <Check className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden="true" />
+                  ) : (
+                    <MailIcon />
+                  )}
+                </button>
               )}
             </div>
 
