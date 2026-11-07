@@ -125,6 +125,14 @@ export const techIconMap: Record<string, string> = {
 
   // General concepts (lucide / mdi)
   "web development": "mdi:web",
+  "full stack dev": "lucide:layers",
+  "full stack development": "lucide:layers",
+  "product engineering": "lucide:package-check",
+  "rapid development": "lucide:zap",
+  "product thinking": "lucide:lightbulb",
+  "strategic decision making": "lucide:compass",
+  "ai-powered development": "lucide:sparkles",
+  "technical architecture": "lucide:boxes",
   "vibe coder": "lucide:flame",
   "pure vibe coder": "lucide:flame",
   "problem solving": "lucide:lightbulb",
@@ -218,6 +226,11 @@ export function getTechColor(name: string): string {
   if (s.includes("swift")) return "text-orange-500";
   if (s.includes("flutter") || s.includes("dart")) return "text-sky-400";
   if (s.includes("vibe") || s.includes("flame")) return "text-orange-400";
+  if (s.includes("full stack")) return "text-sky-400";
+  if (s.includes("product")) return "text-violet-400";
+  if (s.includes("rapid") || s.includes("zap")) return "text-amber-400";
+  if (s.includes("strategic") || s.includes("decision")) return "text-emerald-400";
+  if (s.includes("architecture")) return "text-cyan-400";
   if (s.includes("docker") || s.includes("kubernetes")) return "text-blue-400";
   if (s.includes("devop") || s.includes("git")) return "text-purple-400";
   if (s.includes("security") || s.includes("auth") || s.includes("oauth")) return "text-rose-400";

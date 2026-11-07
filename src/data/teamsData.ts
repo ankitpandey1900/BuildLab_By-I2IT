@@ -40,7 +40,7 @@ export const teamMembers: TeamMember[] = [
     image: "/Dr-V-Rajesh-Chowdhary-1.webp",
     email: "vrajeshc@isquareit.edu.in",
     github: "https://github.com",
-    linkedin: "https://linkedin.com",
+    linkedin: "https://www.linkedin.com/in/dr-vattikuti-rajesh-chowdhary-81416616/",
   },
   {
     id: "sonali-sagar-patil",
@@ -67,7 +67,7 @@ export const teamMembers: TeamMember[] = [
     professionalMemberships: ["ISTE"],
     email: "sonalip@isquareit.edu.in",
     github: "https://github.com",
-    linkedin: "https://linkedin.com",
+    linkedin: "https://www.linkedin.com/in/dr-sonali-s-patil-27121335a/",
   },
   {
     id: "risil-rameshbhai-chhatrala",
@@ -90,7 +90,7 @@ export const teamMembers: TeamMember[] = [
     image: "/Dr-Risil-Rameshbhai-Chhatrala-3.webp",
     email: "risilc@isquareit.edu.in",
     github: "https://github.com/risil",
-    linkedin: "https://linkedin.com",
+    linkedin: "https://www.linkedin.com/in/dr-risil-chhatrala-13a3778/",
   },
   {
     id: "ms-anjali-anandrao-jagtap",
@@ -107,7 +107,7 @@ export const teamMembers: TeamMember[] = [
     image: "/Ms-Anjali-Anandrao-Jagtap-1.webp",
     email: "anjalij@isquareit.edu.in",
     github: "https://github.com",
-    linkedin: "https://linkedin.com",
+    linkedin: "https://www.linkedin.com/in/anjali-jagtap-9a3419231/",
   },
   {
     id: "ankit-pandey",
@@ -117,13 +117,23 @@ export const teamMembers: TeamMember[] = [
     qualifications: "B.E. Information Technology",
     teachingExperience: "Exploring Web Scalable Systems , Will Figure out for teaching",
     industryExperience: "Freelance & Industry Projects",
-    specialization: ["Pure Vibe Coder", "Web Development", "DevOps"],
+    specialization: [
+      "Pure Vibe Coder",
+      "Full Stack Dev",
+      "Product Engineering",
+      "Rapid Development",
+      "Product Thinking",
+      "Strategic Decision Making",
+      "AI-Powered Development",
+      "Technical Architecture",
+      "DevOps",
+    ],
     description:
       "I build products. Life ? Still in debugging mode.",
     portfolio: "ankitpandey19.vercel.app",
     image: "/ankitpandey.webp",
     email: "ankit1pandey11@gmail.com",
-    github: "http://github.com/ankitpandey1900",
+    github: "https://github.com/ankitpandey1900",
     linkedin: "https://www.linkedin.com/in/ankitpandey1900/",
   },
   {
@@ -149,8 +159,6 @@ export const teamMembers: TeamMember[] = [
     github: "https://github.com/ayushrohilla0807-hash",
     linkedin: "https://www.linkedin.com/in/ayush-rohilla0807",
   },
-
-
   {
     id: "abhishek-mondal",
     role: "team",
@@ -194,7 +202,7 @@ export const teamMembers: TeamMember[] = [
     ],
     description:
       "Builds secure & scalable backend services, designs databases, and develops efficient REST APIs.",
-    image: "/",
+    image: "/ayushmusale.jpg",
     portfolio: 'ayushmusale.in',
     email: "aayushmusale05@gmail.com",
     github: "https://github.com/ayushmusale",
