@@ -10,25 +10,35 @@ export interface AdminCaller {
 }
 
 export async function getAdminCaller(): Promise<AdminCaller | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  
-  if (session?.user) {
-    const caller = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, name: true, role: true },
-    });
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
     
-    if (caller && canVerifyStudents(caller.role)) {
-      return caller;
+    if (session?.user) {
+      const caller = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, name: true, role: true },
+      });
+      
+      if (caller && canVerifyStudents(caller.role)) {
+        return caller;
+      }
     }
+  } catch {
+    // Gracefully fall through to local fallback in preview/dev testing
   }
 
   // In local development / preview testing without an active cookie session,
-  // resolve to an existing registered admin/faculty account in the database.
+  // resolve to an existing registered admin account in the database first.
   if (process.env.NODE_ENV !== "production") {
+    const adminFallback = await prisma.user.findFirst({
+      where: { role: "admin" },
+      select: { id: true, name: true, role: true },
+    });
+    if (adminFallback) return adminFallback;
+
     const fallback = await prisma.user.findFirst({
       where: {
-        role: { in: ["admin", "faculty", "lead", "reviewer"] },
+        role: { in: ["faculty", "lead", "reviewer"] },
       },
       select: { id: true, name: true, role: true },
     });
