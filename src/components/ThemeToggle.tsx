@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Moon, Sun, Glasses, Check, ChevronDown } from "lucide-react";
 
-export type ThemeMode = "dark" | "light" | "amber";
+export type ThemeMode = "dark" | "light" | "eye protect";
 
 interface ThemeOption {
   id: ThemeMode;
@@ -19,10 +19,11 @@ export const ThemeToggle: React.FC = () => {
   const applyThemeToDOM = (newTheme: ThemeMode) => {
     if (typeof window === "undefined") return;
     document.documentElement.setAttribute("data-theme", newTheme);
-    document.documentElement.classList.remove("dark", "light", "amber");
-    document.documentElement.classList.add(newTheme);
-    if (newTheme === "amber" || newTheme === "dark") {
+    document.documentElement.classList.remove("dark", "light", "amber", "eye-protect", "eye", "protect");
+    newTheme.split(/\s+/).forEach((cls) => document.documentElement.classList.add(cls));
+    if (newTheme === "eye protect" || (newTheme as string) === "amber" || newTheme === "dark") {
       document.documentElement.classList.add("dark");
+      document.documentElement.classList.add("amber");
     }
     try {
       localStorage.setItem("campus_dev_theme", newTheme);
@@ -33,10 +34,11 @@ export const ThemeToggle: React.FC = () => {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("campus_dev_theme") as ThemeMode | null;
-      if (saved === "light" || saved === "amber") {
-        setTheme(saved);
-        applyThemeToDOM(saved);
+      const saved = localStorage.getItem("campus_dev_theme") as string | null;
+      if (saved === "light" || saved === "eye protect" || saved === "amber") {
+        const resolved: ThemeMode = saved === "amber" ? "eye protect" : (saved as ThemeMode);
+        setTheme(resolved);
+        applyThemeToDOM(resolved);
       } else {
         applyThemeToDOM("dark");
       }
@@ -68,122 +70,30 @@ export const ThemeToggle: React.FC = () => {
     };
   }, [isOpen]);
 
-  const switchTheme = (newTheme: ThemeMode, event?: React.MouseEvent) => {
+  const switchTheme = (newTheme: ThemeMode) => {
     if (newTheme === theme) {
       setIsOpen(false);
       return;
     }
-
-    const btn = event?.currentTarget || containerRef.current;
-    const rect = btn?.getBoundingClientRect();
-    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
-    const y = rect ? rect.top + rect.height / 2 : 0;
-
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    );
-
-    const isDiverge = newTheme === "light" || (theme === "dark" && newTheme === "amber");
-    const doc = document as any;
-
-    if (typeof doc.startViewTransition === "function") {
-      if (!isDiverge) {
-        document.documentElement.classList.add("theme-transition-converge");
-      } else {
-        document.documentElement.classList.remove("theme-transition-converge");
-      }
-
-      const transition = doc.startViewTransition(() => {
-        setTheme(newTheme);
-        applyThemeToDOM(newTheme);
-        setIsOpen(false);
-      });
-
-      transition.ready.then(() => {
-        const clipPath = [
-          `circle(0px at ${x}px ${y}px)`,
-          `circle(${endRadius}px at ${x}px ${y}px)`
-        ];
-
-        const anim = document.documentElement.animate(
-          {
-            clipPath: isDiverge ? clipPath : [...clipPath].reverse()
-          },
-          {
-            duration: 480,
-            easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-            pseudoElement: isDiverge ? "::view-transition-new(root)" : "::view-transition-old(root)"
-          }
-        );
-
-        anim.onfinish = () => {
-          document.documentElement.classList.remove("theme-transition-converge");
-        };
-      });
-    } else {
-      triggerRippleWave(newTheme, x, y, isDiverge, endRadius);
-      setIsOpen(false);
-    }
-  };
-
-  const triggerRippleWave = (
-    newTheme: ThemeMode,
-    x: number,
-    y: number,
-    isDiverge: boolean,
-    endRadius: number
-  ) => {
-    const overlay = document.createElement("div");
-    const targetBg = newTheme === "light" ? "#fcfcfd" : newTheme === "amber" ? "#201811" : "#09090b";
-
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.zIndex = "999999";
-    overlay.style.pointerEvents = "none";
-    overlay.style.backgroundColor = targetBg;
-    overlay.style.transition = "clip-path 420ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease";
-
-    if (isDiverge) {
-      overlay.style.clipPath = `circle(0px at ${x}px ${y}px)`;
-      document.body.appendChild(overlay);
-
-      requestAnimationFrame(() => {
-        overlay.style.clipPath = `circle(${endRadius}px at ${x}px ${y}px)`;
-        setTimeout(() => {
-          setTheme(newTheme);
-          applyThemeToDOM(newTheme);
-          overlay.style.opacity = "0";
-          setTimeout(() => overlay.remove(), 150);
-        }, 360);
-      });
-    } else {
-      overlay.style.clipPath = `circle(${endRadius}px at ${x}px ${y}px)`;
-      document.body.appendChild(overlay);
-
-      requestAnimationFrame(() => {
-        setTheme(newTheme);
-        applyThemeToDOM(newTheme);
-        overlay.style.clipPath = `circle(0px at ${x}px ${y}px)`;
-        setTimeout(() => overlay.remove(), 420);
-      });
-    }
+    setTheme(newTheme);
+    applyThemeToDOM(newTheme);
+    setIsOpen(false);
   };
 
   const themeOptions: ThemeOption[] = [
     {
       id: "dark",
       name: "Dark",
-      icon: <Moon size={14} className="text-sky-400 shrink-0" />,
+      icon: <Moon size={14} className="text-indigo-400 shrink-0" />,
     },
     {
       id: "light",
       name: "Light",
-      icon: <Sun size={14} className="text-amber-500 shrink-0" />,
+      icon: <Sun size={14} className="text-orange-500 shrink-0" />,
     },
     {
-      id: "amber",
-      name: "Amber",
+      id: "eye protect",
+      name: "eye protect",
       icon: <Glasses size={14} className="text-amber-400 shrink-0" />,
     },
   ];
@@ -202,9 +112,9 @@ export const ThemeToggle: React.FC = () => {
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] hover:border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] transition-all cursor-pointer shadow-2xs group"
       >
         <div className="flex items-center justify-center w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] group-hover:scale-105 transition-transform">
-          {theme === "dark" && <Moon size={13} className="text-sky-400" />}
-          {theme === "light" && <Sun size={13} className="text-amber-500" />}
-          {theme === "amber" && <Glasses size={13} className="text-amber-400" />}
+          {theme === "dark" && <Moon size={13} className="text-indigo-400" />}
+          {theme === "light" && <Sun size={13} className="text-orange-500" />}
+          {theme === "eye protect" && <Glasses size={13} className="text-amber-400" />}
         </div>
         <ChevronDown 
           size={12} 
@@ -215,7 +125,7 @@ export const ThemeToggle: React.FC = () => {
       {/* Floating Small & Simple Theme Dropdown */}
       {isOpen && (
         <div 
-          className="absolute right-0 mt-1.5 w-36 rounded-xl border border-[var(--border-default)] shadow-[0_12px_32px_rgba(0,0,0,0.55)] p-1 z-[100] animate-in fade-in zoom-in-95 duration-150"
+          className="absolute right-0 mt-1.5 w-40 rounded-xl border border-[var(--border-default)] shadow-[0_12px_32px_rgba(0,0,0,0.55)] p-1 z-[100] animate-in fade-in zoom-in-95 duration-150"
           style={{ backgroundColor: "var(--bg-surface)" }}
         >
           <div className="space-y-0.5">
@@ -225,7 +135,7 @@ export const ThemeToggle: React.FC = () => {
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={(e) => switchTheme(opt.id, e)}
+                  onClick={() => switchTheme(opt.id)}
                   className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     isSelected
                       ? "bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs"
