@@ -1,36 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Mail, RotateCw, GraduationCap, Briefcase, Layers, Globe, Award, Code } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Mail, GraduationCap, Briefcase, Layers, Globe, Award, Code, Check, X, ArrowUpRight, ArrowLeft } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import type { TeamMember } from "@/data/teamsData";
+import { TechIcon } from "./TechIcon";
 
 function GitHubIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-      />
-    </svg>
-  );
+  return <Icon icon="simple-icons:github" className="h-4 w-4" strokeWidth={2} style={{ strokeWidth: 2 }} aria-hidden="true" />;
 }
 
 function LinkedInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8.5h4V24h-4V8.5zM8.5 8.5h3.8v2.1h.05c.53-1 1.84-2.1 3.79-2.1 4.06 0 4.81 2.67 4.81 6.15V24h-4v-7.7c0-1.84-.03-4.2-2.56-4.2-2.56 0-2.95 2-2.95 4.06V24h-4V8.5z" />
-    </svg>
-  );
+  return <Icon icon="simple-icons:linkedin" className="h-4 w-4" strokeWidth={2} style={{ strokeWidth: 2 }} aria-hidden="true" />;
 }
 
 function MailIcon() {
-  return <Mail className="h-4 w-4" aria-hidden="true" />;
+  return <Mail className="h-4 w-4" strokeWidth={2} aria-hidden="true" />;
 }
 
 function GlobeIcon() {
-  return <Globe className="h-4 w-4" aria-hidden="true" />;
+  return <Globe className="h-4 w-4" strokeWidth={2} aria-hidden="true" />;
 }
 
 interface TeamMemberCardProps {
@@ -48,6 +38,54 @@ interface SocialLink {
   external: boolean;
 }
 
+function getInitials(name: string): string {
+  return name
+    .replace(/^Prof\.\s*(\(Dr\.\)\s*)?/, "")
+    .replace(/^Dr\.\s*/, "")
+    .replace(/^Ms\.\s*/, "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+}
+
+function getCredentialTeaser(member: TeamMember): string | null {
+  // Only display credential teasers for academic faculty & leadership (Head and Mentors)
+  if (member.role === "team") return null;
+
+  let degree = "";
+  if (member.qualifications) {
+    if (member.qualifications.includes("PhD")) {
+      degree = "PhD";
+    } else if (member.qualifications.includes("ME") || member.qualifications.includes("M.Tech")) {
+      degree = "ME";
+    } else if (member.qualifications.includes("B.E.")) {
+      degree = "B.E.";
+    } else {
+      degree = member.qualifications.split(/[,(]/)[0].trim();
+    }
+  }
+
+  let exp = "";
+  if (member.teachingExperience && member.teachingExperience !== "Nil" && member.teachingExperience.trim()) {
+    const match = member.teachingExperience.match(/^([\d.]+)\s*years?/i);
+    if (match) {
+      exp = `${match[1]}y Exp`;
+    }
+  } else if (member.industryExperience && member.industryExperience !== "Nil" && member.industryExperience.trim()) {
+    const match = member.industryExperience.match(/^([\d.]+)\s*years?/i);
+    if (match) {
+      exp = `${match[1]}y Industry`;
+    }
+  }
+
+  if (degree && exp) return `${degree} • ${exp}`;
+  if (degree) return degree;
+  if (exp) return exp;
+  return null;
+}
+
 export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
   member,
   prominent = true,
@@ -56,10 +94,25 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
   onFlipChange,
 }) => {
   const hasGlow = controlledHasGlow !== undefined ? controlledHasGlow : prominent;
-  const [imgSrc, setImgSrc] = useState(member.image);
+  const credentialTeaser = getCredentialTeaser(member);
+  const [imgSrc, setImgSrc] = useState(
+    member.image && member.image !== "/" ? member.image : ""
+  );
+  const [imgError, setImgError] = useState(false);
+  const showFallbackAvatar = !imgSrc || imgError;
   const [internalFlipped, setInternalFlipped] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const backArticleRef = useRef<HTMLElement>(null);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const hasEmail = Boolean(member.email && member.email.trim().length > 0);
+
+  const specializationSkills = Array.isArray(member.specialization)
+    ? member.specialization
+    : typeof member.specialization === "string"
+    ? (member.specialization as string)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 
   const isControlled = controlledFlipped !== undefined;
   const isFlipped = isControlled ? controlledFlipped : internalFlipped;
@@ -71,46 +124,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       onFlipChange?.(false);
     }
   }, [prominent, onFlipChange]);
-
-  // When card is clicked and flipped open, smoothly scroll page up or down so the card is centered vertically on screen
-  useEffect(() => {
-    if (!isFlipped) return;
-
-    const timeoutId = setTimeout(() => {
-      const cardEl = cardRef.current;
-      if (!cardEl) return;
-
-      const currentScrollY = window.scrollY || window.pageYOffset;
-      const rect = cardEl.getBoundingClientRect();
-      const cardTopInPage = currentScrollY + rect.top;
-
-      // When flipped, the back face article uses relative positioning and provides the true layout height
-      const cardHeight = backArticleRef.current?.offsetHeight || rect.height;
-      const viewportHeight = window.innerHeight;
-
-      // Calculate the target top offset so the card is centered vertically in viewport
-      const idealTopInViewport =
-        cardHeight + 32 > viewportHeight
-          ? 16
-          : (viewportHeight - cardHeight) / 2;
-
-      const targetScrollY = cardTopInPage - idealTopInViewport;
-      const finalScrollY = Math.max(0, targetScrollY);
-
-      if (Math.abs(currentScrollY - finalScrollY) > 4) {
-        const prefersReducedMotion =
-          typeof window !== "undefined" &&
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-        window.scrollTo({
-          top: finalScrollY,
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-        });
-      }
-    }, 50);
-
-    return () => clearTimeout(timeoutId);
-  }, [isFlipped]);
 
   const toggleFlip = (e?: React.MouseEvent) => {
     // Only allow flipping if the card is the main focus of screen
@@ -157,37 +170,30 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
     });
   }
 
-  links.push({
-    href: member.email ? `mailto:${member.email}` : "mailto:team@buildlab.i2it.edu",
-    label: `Email ${member.name}`,
-    icon: MailIcon,
-    external: false,
-  });
-
   const roleInfo = {
     head: {
       label: "Head",
       icon: Award,
       badgeStyle:
-        "bg-purple-500/10 text-purple-400 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.25)] ring-1 ring-purple-500/20",
+        "bg-purple-500/10 text-purple-400 border-purple-500/30",
     },
     mentor: {
       label: "Mentor",
       icon: GraduationCap,
       badgeStyle:
-        "bg-amber-500/10 text-amber-400 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/20",
+        "bg-amber-500/10 text-amber-400 border-amber-500/30",
     },
     team: {
-      label: "Team",
+      label: "Core Team",
       icon: Code,
       badgeStyle:
-        "bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/20",
+        "bg-blue-500/10 text-blue-400 border-blue-500/30",
     },
   }[member.role] || {
-    label: "Team",
+    label: "Core Team",
     icon: Code,
     badgeStyle:
-      "bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/20",
+      "bg-blue-500/10 text-blue-400 border-blue-500/30",
   };
 
   const RoleIcon = roleInfo.icon;
@@ -202,14 +208,8 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       : null,
   ].filter(Boolean);
 
-  const experienceText =
-    experienceParts.length > 0
-      ? experienceParts.join(" • ")
-      : member.teachingExperience || "N/A";
-
   return (
     <motion.div
-      ref={cardRef}
       layout
       className="relative w-full [perspective:1400px]"
       transition={{ layout: { duration: 0.45, ease: [0.23, 1, 0.32, 1] } }}
@@ -222,7 +222,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           rotateY: { duration: 0.55, ease: [0.23, 1, 0.32, 1] },
           layout: { duration: 0.45, ease: [0.23, 1, 0.32, 1] },
         }}
-        style={{ transformStyle: "preserve-3d" }}
+        style={{ transformStyle: "preserve-3d", WebkitTransformStyle: "preserve-3d" }}
       >
         {/* =========================================
             FRONT FACE (DEFAULT COMPACT / SMALL):
@@ -231,66 +231,135 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
            ========================================= */}
         <article
           onClick={toggleFlip}
-          style={{ backfaceVisibility: "hidden" }}
+          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
           className={`${
             !isFlipped ? "relative" : "absolute inset-0"
           } w-full rounded-[1.6rem] border p-5 sm:p-6 sm:px-7 transition-all duration-300 cursor-pointer select-none group [backface-visibility:hidden] flex items-center ${
             prominent
-              ? hasGlow
-                ? "border-white/35 bg-[var(--bg-surface)]/95 shadow-[0_0_25px_rgba(255,255,255,0.22),0_0_60px_rgba(255,255,255,0.1),0_12px_32px_rgba(0,0,0,0.4)] hover:border-white/50 hover:shadow-[0_0_35px_rgba(255,255,255,0.3),0_0_75px_rgba(255,255,255,0.15),0_16px_40px_rgba(0,0,0,0.5)]"
-                : "border-[var(--border-default)] bg-[var(--bg-surface)]/95 shadow-xl shadow-black/25 hover:border-[var(--border-hover)]"
-              : "border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 opacity-90 shadow-md hover:border-[var(--border-default)]"
+              ? "border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--bg-surface)]/95 shadow-xl shadow-black/10 dark:shadow-black/40 hover:shadow-2xl hover:shadow-black/15 dark:hover:shadow-black/50"
+              : "border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 opacity-90 shadow-md shadow-black/5 dark:shadow-black/20 hover:border-[var(--border-default)]"
           } ${isFlipped ? "pointer-events-none" : ""}`}
         >
           <div className="flex w-full items-center justify-between gap-4 sm:gap-6">
-            <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-              <img
-                src={imgSrc}
-                alt={member.name}
-                onError={() => {
-                  setImgSrc(
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      member.name
-                    )}&background=18181b&color=ededed&bold=true`
-                  );
-                }}
-                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border border-white/10 dark:border-white/10 bg-[var(--bg-surface-elevated)] object-cover shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-105"
-              />
+            <div className="flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
+              {showFallbackAvatar ? (
+                <div
+                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border border-[var(--border-subtle)] bg-gradient-to-br from-slate-900 via-zinc-900 to-indigo-950 flex items-center justify-center shadow-md select-none shrink-0 transition-transform duration-300 group-hover:scale-105 ring-1 ring-white/10 dark:ring-white/15"
+                  aria-hidden="true"
+                >
+                  <span className="font-mono text-base sm:text-lg font-bold tracking-wider text-slate-100">
+                    {getInitials(member.name)}
+                  </span>
+                </div>
+              ) : (
+                <img
+                  src={imgSrc}
+                  alt={member.name}
+                  onError={() => setImgError(true)}
+                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] object-cover shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-105"
+                />
+              )}
 
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 space-y-1 flex-1">
                 <div className="flex items-center gap-2">
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] sm:text-xs font-medium border ${roleInfo.badgeStyle}`}
                   >
-                    <RoleIcon size={12} className="shrink-0" />
+                    <RoleIcon size={12} strokeWidth={2} className="shrink-0" />
                     <span>{roleInfo.label}</span>
                   </span>
                 </div>
 
-                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-pure)] truncate">
+                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-pure)] leading-snug">
                   {member.name}
                 </h3>
 
-                <div className="space-y-0.5">
-                  <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)] truncate">
-                    {member.designation}
-                  </p>
-                  <p className="text-xs text-[var(--text-tertiary)] line-clamp-1 max-w-md flex items-center gap-1.5">
-                    <Layers size={12} className="shrink-0 opacity-70" />
-                    <span className="truncate">{member.specialization}</span>
-                  </p>
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">
+                      {member.designation}
+                    </p>
+                    {credentialTeaser && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 font-mono text-[10.5px] font-medium text-[var(--text-secondary)] shadow-2xs">
+                        <GraduationCap size={11} className="text-amber-400 shrink-0" />
+                        <span>{credentialTeaser}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {specializationSkills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/70 px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
+                      >
+                        <TechIcon name={skill} className="w-3 h-3" strokeWidth={2} />
+                        <span>{skill}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Social Action Strip & 1-Click Email Copy on Front Face */}
+                  <div className="flex items-center gap-1.5 pt-1.5">
+                    {links.map((item) => {
+                      const IconComp = item.icon;
+                      return (
+                        <a
+                          key={item.label}
+                          href={item.href}
+                          aria-label={item.label}
+                          title={item.label}
+                          onClick={(e) => e.stopPropagation()}
+                          target={item.external ? "_blank" : undefined}
+                          rel={item.external ? "noreferrer" : undefined}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/90 text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] hover:scale-105 transition-all shadow-2xs"
+                        >
+                          <IconComp />
+                        </a>
+                      );
+                    })}
+
+                    {/* 1-Click Email Copy */}
+                    {hasEmail && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (member.email) {
+                            navigator.clipboard?.writeText(member.email);
+                            setCopiedEmail(true);
+                            setTimeout(() => setCopiedEmail(false), 2000);
+                          }
+                        }}
+                        aria-label={`Copy email for ${member.name}`}
+                        title={copiedEmail ? "Copied to clipboard!" : `Copy ${member.email}`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/90 text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] hover:scale-105 transition-all shadow-2xs cursor-pointer"
+                      >
+                        {copiedEmail ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} aria-hidden="true" />
+                        ) : (
+                          <MailIcon />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Subtle reload/flip icon button */}
-            <button
-              type="button"
-              onClick={toggleFlip}
-              className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] group-hover:text-[var(--text-pure)] group-hover:border-[var(--border-hover)] transition-all shrink-0 shadow-sm"
-            >
-              <RotateCw size={14} className="transition-transform duration-300 group-hover:rotate-45" />
-            </button>
+            {/* Profile trigger button / pill with 3D flip affordance */}
+            <div className="relative group/flip shrink-0">
+              <button
+                type="button"
+                onClick={toggleFlip}
+                aria-label={`View profile for ${member.name}`}
+                title="View profile"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/90 hover:bg-[var(--bg-surface-elevated)] hover:border-[var(--border-default)] px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-mono font-medium text-[var(--text-secondary)] hover:text-[var(--text-pure)] transition-all shrink-0 shadow-2xs cursor-pointer group/btn"
+              >
+                <Layers size={13} className="text-sky-400 group-hover/btn:rotate-180 transition-transform duration-500 shrink-0" />
+                <span className="hidden sm:inline">Profile</span>
+                <ArrowUpRight size={12} className="text-[var(--text-tertiary)] group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform shrink-0" />
+              </button>
+            </div>
           </div>
         </article>
 
@@ -299,73 +368,82 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             Shown when clicked, matching the user reference design!
            ========================================= */}
         <article
-          ref={backArticleRef}
           onClick={toggleFlip}
           style={{
             transform: "rotateY(180deg)",
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
           }}
           className={`${
             isFlipped ? "relative" : "absolute inset-0"
-          } w-full rounded-[2rem] border transition-all duration-300 ${
-            hasGlow
-              ? "border-white/35 shadow-[0_0_30px_rgba(255,255,255,0.22),0_0_70px_rgba(255,255,255,0.1),0_20px_48px_rgba(0,0,0,0.5)]"
-              : "border-[var(--border-default)] shadow-2xl shadow-black/30"
-          } bg-[var(--bg-surface)] p-6 sm:p-8 cursor-pointer select-none [backface-visibility:hidden] flex flex-col justify-between ${
+          } w-full rounded-[2rem] border transition-all duration-300 border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--bg-surface)] p-6 sm:p-8 cursor-pointer select-none [backface-visibility:hidden] flex flex-col justify-between shadow-2xl shadow-black/15 dark:shadow-black/50 ${
             !isFlipped ? "pointer-events-none" : ""
           }`}
         >
           {/* Top Row: Avatar + Name + Badge + Designation + Flip Button */}
           <div className="flex items-center justify-between gap-4 sm:gap-6 shrink-0">
             <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-              <img
-                src={imgSrc}
-                alt={member.name}
-                className="h-14 w-14 sm:h-16 sm:w-16 rounded-full border border-white/10 dark:border-white/10 bg-[var(--bg-surface-elevated)] object-cover shadow-sm shrink-0"
-              />
+              {showFallbackAvatar ? (
+                <div
+                  className="h-14 w-14 sm:h-16 sm:w-16 rounded-full border border-[var(--border-subtle)] bg-gradient-to-br from-slate-900 via-zinc-900 to-indigo-950 flex items-center justify-center shadow-md select-none shrink-0 ring-1 ring-white/10 dark:ring-white/15"
+                  aria-hidden="true"
+                >
+                  <span className="font-mono text-sm sm:text-base font-bold tracking-wider text-slate-100">
+                    {getInitials(member.name)}
+                  </span>
+                </div>
+              ) : (
+                <img
+                  src={imgSrc}
+                  alt={member.name}
+                  onError={() => setImgError(true)}
+                  className="h-14 w-14 sm:h-16 sm:w-16 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] object-cover shadow-sm shrink-0"
+                />
+              )}
 
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-pure)] truncate">
+                  <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-pure)] leading-snug">
                     {member.name}
                   </h3>
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${roleInfo.badgeStyle}`}
                   >
-                    <RoleIcon size={12} className="shrink-0" />
+                    <RoleIcon size={12} strokeWidth={2} className="shrink-0" />
                     <span>{roleInfo.label}</span>
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)] truncate">
+                <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">
                   {member.designation}
                 </p>
               </div>
             </div>
 
-            {/* Top right rotate button */}
+            {/* Top right close button to flip back to compact card */}
             <button
               type="button"
               onClick={toggleFlip}
-              title="Flip back"
-              className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-all shrink-0 shadow-sm"
+              title="Close profile"
+              aria-label="Close profile"
+              className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)] transition-all shrink-0 shadow-sm cursor-pointer group/close"
             >
-              <RotateCw size={15} />
+              <X size={16} strokeWidth={2} className="transition-transform group-hover/close:rotate-90 duration-200" />
             </button>
           </div>
 
           {/* Divider */}
-          <div className="border-b border-white/10 dark:border-white/10 my-4 sm:my-5 shrink-0" />
+          <div className="border-b border-[var(--border-subtle)] my-4 sm:my-5 shrink-0" />
 
           {/* Structured Details: Qualification, Experience, Specialization */}
           <div className="space-y-3 sm:space-y-3.5 my-auto shrink-0">
             {/* Qualification */}
             <div className="flex items-center gap-3 text-xs sm:text-sm">
-              <GraduationCap size={18} className="text-[var(--text-secondary)] shrink-0" />
+              <GraduationCap size={18} strokeWidth={2} className="text-[var(--text-secondary)] shrink-0" />
               <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0">
                 Qualification
               </span>
-              <span className="text-white/20 dark:text-white/20 select-none">|</span>
+              <span className="text-[var(--border-default)] select-none">|</span>
               <span className="text-[var(--text-secondary)] truncate">
                 {member.qualifications || "N/A"}
               </span>
@@ -373,11 +451,11 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
             {/* Experience */}
             <div className="flex items-start gap-3 text-xs sm:text-sm">
-              <Briefcase size={18} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
+              <Briefcase size={18} strokeWidth={2} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
               <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0 pt-0.5">
                 Experience
               </span>
-              <span className="text-white/20 dark:text-white/20 select-none pt-0.5">|</span>
+              <span className="text-[var(--border-default)] select-none pt-0.5">|</span>
               <div className="text-[var(--text-secondary)] min-w-0 space-y-1 leading-snug">
                 {experienceParts.length > 0 ? (
                   experienceParts.map((part, idx) => (
@@ -393,24 +471,32 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
             {/* Specialization */}
             <div className="flex items-start gap-3 text-xs sm:text-sm">
-              <Layers size={18} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
+              <Layers size={18} strokeWidth={2} className="text-[var(--text-secondary)] shrink-0 mt-0.5" />
               <span className="w-24 sm:w-28 font-bold text-[var(--text-pure)] shrink-0 pt-0.5">
                 Specialization
               </span>
-              <span className="text-white/20 dark:text-white/20 select-none pt-0.5">|</span>
-              <span className="text-[var(--text-secondary)] line-clamp-2 break-words">
-                {member.specialization}
-              </span>
+              <span className="text-[var(--border-default)] select-none pt-0.5">|</span>
+              <div className="flex flex-wrap gap-1.5 pt-0.5 min-w-0">
+                {specializationSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-1 text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-all shadow-2xs"
+                  >
+                    <TechIcon name={skill} className="w-3.5 h-3.5" strokeWidth={2} />
+                    <span>{skill}</span>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Quote Description Box */}
           {member.description && (
-            <div className="mt-4 sm:mt-5 rounded-xl border border-white/10 bg-[var(--bg-surface-elevated)]/50 px-4 py-3 sm:px-5 sm:py-3.5 flex items-center gap-3.5 shrink-0">
+            <div className="mt-4 sm:mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]/50 px-4 py-3 sm:px-5 sm:py-3.5 flex items-center gap-3.5 shrink-0">
               <span className="text-sky-400 font-serif font-black text-2xl leading-none select-none shrink-0">
                 &ldquo;&ldquo;
               </span>
-              <p className="text-xs sm:text-sm italic text-[var(--text-secondary)] leading-relaxed line-clamp-2">
+              <p className="text-xs sm:text-sm italic text-[var(--text-secondary)] leading-relaxed">
                 &ldquo;{member.description}&rdquo;
               </p>
             </div>
@@ -437,16 +523,40 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                   </a>
                 );
               })}
+
+              {/* Email Button */}
+              {hasEmail && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (member.email) {
+                      navigator.clipboard?.writeText(member.email);
+                      setCopiedEmail(true);
+                      setTimeout(() => setCopiedEmail(false), 2000);
+                    }
+                  }}
+                  aria-label={`Email: ${member.email}`}
+                  title={copiedEmail ? "Copied to clipboard!" : member.email}
+                  className="inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] transition-all hover:scale-105 hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] shadow-sm cursor-pointer"
+                >
+                  {copiedEmail ? (
+                    <Check className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden="true" />
+                  ) : (
+                    <MailIcon />
+                  )}
+                </button>
+              )}
             </div>
 
-            {/* Flip back label */}
+            {/* Back to card button */}
             <button
               type="button"
               onClick={toggleFlip}
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--text-tertiary)] hover:text-[var(--text-pure)] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--text-tertiary)] hover:text-[var(--text-pure)] transition-colors cursor-pointer group/back"
             >
-              <RotateCw size={13} />
-              <span>Flip back</span>
+              <ArrowLeft size={13} strokeWidth={2} className="transition-transform group-hover/back:-translate-x-1 duration-200" />
+              <span>Back to card</span>
             </button>
           </div>
         </article>

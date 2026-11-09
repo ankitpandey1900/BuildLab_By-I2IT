@@ -2,15 +2,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FolderGit2, 
-  ArrowRight, 
-  GitBranch, 
-  ShieldCheck, 
-  Users, 
-  Terminal, 
-  Sparkles, 
-  Code2, 
+import {
+  FolderGit2,
+  ArrowRight,
+  GitBranch,
+  ShieldCheck,
+  Users,
+  Terminal,
+  Sparkles,
+  Code2,
   ExternalLink,
   ChevronRight,
   CheckCircle2,
@@ -31,21 +31,18 @@ import {
   Clock
 } from 'lucide-react';
 import { Project } from '@/types';
+import { Icon } from '@iconify/react';
 import { LandingHeader } from './LandingHeader';
 import { TechBadge } from './ui/TechBadge';
 import { Spotlight } from './ui/spotlight';
 import { getMaturityColor } from '@/lib/utils';
 
 const GitLogo: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none">
-    <path d="M2.59 13.41L10.59 21.41C11.37 22.19 12.63 22.19 13.41 21.41L21.41 13.41C22.19 12.63 22.19 11.37 21.41 10.59L13.41 2.59C12.63 1.81 11.37 1.81 10.59 2.59L8.41 4.77L10.74 7.1C11.32 6.91 12 7.04 12.46 7.5C12.92 7.96 13.05 8.64 12.86 9.22L15.34 11.7C15.92 11.51 16.6 11.64 17.06 12.1C17.65 12.69 17.65 13.64 17.06 14.22C16.47 14.81 15.52 14.81 14.94 14.22C14.48 13.76 14.35 13.08 14.54 12.5L12.06 10.02C11.87 10.21 11.65 10.37 11.41 10.49V16.63C11.78 16.85 12.08 17.19 12.24 17.61C12.4 18.03 12.4 18.5 12.24 18.92C12.08 19.34 11.78 19.68 11.41 19.9C10.79 20.26 10 20.26 9.38 19.9C9.01 19.68 8.71 19.34 8.55 18.92C8.39 18.5 8.39 18.03 8.55 17.61C8.71 17.19 9.01 16.85 9.38 16.63V10.49C9.14 10.37 8.92 10.21 8.73 10.02C8.27 9.56 8.14 8.88 8.33 8.3L6.04 6.01L2.59 9.46C1.81 10.24 1.81 11.5 2.59 12.28L2.59 13.41Z" fill="#F05138" />
-  </svg>
+  <Icon icon="simple-icons:git" className={`${className} text-[#F05138]`} />
 );
 
 const GitHubLogo: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-  </svg>
+  <Icon icon="simple-icons:github" className={className} />
 );
 
 const ambientCodeSnippets = [
@@ -305,7 +302,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </span>
           </div>
 
-          <motion.div 
+          <motion.div
             whileHover={{ scale: 1.01 }}
             className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-surface)] transition-all"
           >
@@ -386,15 +383,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => setClaimedWorkflowTask(prev => !prev)}
-              className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                claimedWorkflowTask
+              className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1.5 ${claimedWorkflowTask
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   : "bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] border border-[var(--border-default)]"
-              }`}
+                }`}
             >
               <AnimatePresence mode="wait">
                 {claimedWorkflowTask ? (
-                  <motion.span 
+                  <motion.span
                     key="claimed"
                     initial={{ opacity: 0, y: -2 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -405,7 +401,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <span>Claimed ✓</span>
                   </motion.span>
                 ) : (
-                  <motion.span 
+                  <motion.span
                     key="claim"
                     initial={{ opacity: 0, y: -2 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -488,9 +484,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span>Verified Attribution</span>
             </span>
             {copiedWorkflowSha ? (
-              <motion.span 
-                initial={{ opacity: 0, x: 4 }} 
-                animate={{ opacity: 1, x: 0 }} 
+              <motion.span
+                initial={{ opacity: 0, x: 4 }}
+                animate={{ opacity: 1, x: 0 }}
                 className="text-emerald-500 text-[10.5px] font-semibold"
               >
                 SHA Copied!
@@ -528,7 +524,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-blue-500/25 selection:text-[var(--accent-primary)]">
-      
+
       <LandingHeader isAuthenticated={isAuthenticated} userEmail={userEmail} />
 
       {/* Main Hero Section with Ambient Developer Workspace & Git Trust Layer */}
@@ -538,7 +534,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <Spotlight className="-top-40 right-0 md:right-32 md:-top-20" fill="white" side="right" />
 
         {/* Ambient Dot Grid with Radial Vignette */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none bg-dot-[var(--dot-color)] opacity-40 -z-10"
           style={{
             maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 15%, transparent 75%)",
@@ -547,13 +543,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         />
 
         {/* Subtle Radial Ambient Neutral Glow */}
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 pointer-events-none opacity-20 blur-3xl -z-10 bg-gradient-to-b from-white/10 to-transparent" 
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 pointer-events-none opacity-20 blur-3xl -z-10 bg-gradient-to-b from-white/10 to-transparent"
         />
 
         {/* Developer Coding Ambient Stream in Background */}
-        <div 
-          aria-hidden="true" 
+        <div
+          aria-hidden="true"
           className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-[0.04] dark:opacity-[0.09] flex justify-around text-xs font-mono -z-10"
           style={{
             maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, transparent 80%)",
@@ -561,7 +557,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}
         >
           {/* Column 1 of floating code */}
-          <motion.div 
+          <motion.div
             animate={{ y: [0, -40, 0] }}
             transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
             className="space-y-2 py-4"
@@ -577,7 +573,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
 
           {/* Column 2 of floating code */}
-          <motion.div 
+          <motion.div
             animate={{ y: [-30, 10, -30] }}
             transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
             className="space-y-2 py-4 hidden md:block"
@@ -593,7 +589,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
 
           {/* Column 3 of floating code */}
-          <motion.div 
+          <motion.div
             animate={{ y: [10, -30, 10] }}
             transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
             className="space-y-2 py-4 hidden lg:block"
@@ -611,14 +607,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
           {/* Hero Header Area with Framer Motion Stagger */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="text-center space-y-5 max-w-3xl mx-auto"
           >
             {/* Status Pill with Official Git & GitHub Logos */}
-            <motion.div 
+            <motion.div
               whileHover={{ scale: 1.02 }}
               className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-default)] text-[11.5px] text-[var(--text-secondary)] shadow-2xs cursor-default flex-wrap justify-center"
             >
@@ -653,7 +649,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Primary Action Buttons */}
             <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
-              <motion.a 
+              <motion.a
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 href="#projects"
@@ -664,7 +660,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </motion.a>
 
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link 
+                <Link
                   href={isAuthenticated ? "/dashboard" : "/sign-up"}
                   className="px-5 py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-all cursor-pointer"
                 >
@@ -677,39 +673,43 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Live Community Developer Faces & Activity Strip */}
             <div className="pt-2 flex justify-center">
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -1 }}
                 style={{ backgroundColor: "var(--bg-surface)" }}
                 className="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-default)] shadow-[0_8px_25px_rgba(0,0,0,0.18)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)] transition-all cursor-default flex-wrap sm:flex-nowrap justify-center"
               >
                 {/* Overlapping Avatar Stack with Micro-Zoom */}
                 <div className="flex items-center -space-x-2 shrink-0">
-                  <div 
-                    className="relative z-50 w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white border border-sky-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
+                  <div
+                    className="relative z-50 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white border border-sky-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
                     title="Aarav Sharma · CE '26 (14 contributions)"
                   >
                     AS
                   </div>
-                  <div 
-                    className="relative z-40 w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-pink-600 text-white border border-purple-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
+
+                  <div
+                    className="relative z-40 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-pink-600 text-white border border-purple-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
                     title="Ananya Kulkarni · IT '27 (9 contributions)"
                   >
                     AK
                   </div>
-                  <div 
-                    className="relative z-30 w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white border border-emerald-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
+
+                  <div
+                    className="relative z-30 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white border border-emerald-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
                     title="Rohan Deshmukh · E&TC '25 (22 contributions)"
                   >
                     RD
                   </div>
-                  <div 
-                    className="relative z-20 w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 text-white border border-amber-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
+
+                  <div
+                    className="relative z-20 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 text-white border border-amber-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
                     title="Sneha Patil · CE '26 (11 contributions)"
                   >
                     SP
                   </div>
-                  <div 
-                    className="relative z-10 w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-600 text-white border border-indigo-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 hover:z-20 transition-transform shadow-xs cursor-pointer" 
+
+                  <div
+                    className="relative z-10 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-600 text-white border border-indigo-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
                     title="Tanmay Joshi · IT '25 (17 contributions)"
                   >
                     TJ
@@ -734,7 +734,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Quick Git Clone Snippet */}
             <div className="pt-1 flex justify-center">
-              <motion.div 
+              <motion.div
                 whileHover={{ borderColor: "var(--border-hover)" }}
                 className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[11.5px] font-mono text-[var(--text-secondary)] shadow-2xs"
               >
@@ -753,7 +753,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
 
           {/* Interactive Hero Showcase / Code Preview Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
@@ -777,22 +777,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveHeroTab('cli')}
-                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
-                    activeHeroTab === 'cli'
+                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${activeHeroTab === 'cli'
                       ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs'
                       : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                  }`}
+                    }`}
                 >
                   cli-session.sh
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveHeroTab('receipt')}
-                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
-                    activeHeroTab === 'receipt'
+                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${activeHeroTab === 'receipt'
                       ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs'
                       : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                  }`}
+                    }`}
                 >
                   verified-receipt.json
                 </button>
@@ -803,7 +801,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="p-5 sm:p-6 font-mono text-xs leading-relaxed overflow-x-auto bg-[var(--code-bg, #0b0f19)] min-h-[210px]">
               <AnimatePresence mode="wait">
                 {activeHeroTab === 'cli' ? (
-                  <motion.div 
+                  <motion.div
                     key="cli"
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -853,7 +851,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </div>
                   </motion.div>
                 ) : (
-                  <motion.div 
+                  <motion.div
                     key="receipt"
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -863,7 +861,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   >
                     <div className="text-[var(--text-tertiary)]">// Cryptographically signed student contribution receipt</div>
                     <pre className="text-[11px] leading-snug text-emerald-300">
-{`{
+                      {`{
   "receiptId": "rec_i2it_2026_commit_99b2c3",
   "project": "college-dev/campus-ride-telemetry",
   "contributor": {
@@ -898,7 +896,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
               {/* Card 1: Active Repositories */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
                 className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
@@ -932,7 +930,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </motion.div>
 
               {/* Card 2: Claimable Tasks */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
                 className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
@@ -966,7 +964,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </motion.div>
 
               {/* Card 3: Campus Identity Verified */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
                 className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
@@ -999,7 +997,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </motion.div>
 
               {/* Card 4: Peer Review Loop */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
                 className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
@@ -1058,55 +1056,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterTrack('all')}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  filterTrack === 'all'
+                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${filterTrack === 'all'
                     ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 All Projects
               </button>
               <button
                 type="button"
                 onClick={() => setFilterTrack('beginner')}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  filterTrack === 'beginner'
+                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${filterTrack === 'beginner'
                     ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 Beginner Friendly
               </button>
               <button
                 type="button"
                 onClick={() => setFilterTrack('typescript')}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  filterTrack === 'typescript'
+                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${filterTrack === 'typescript'
                     ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 TypeScript / Web
               </button>
               <button
                 type="button"
                 onClick={() => setFilterTrack('python')}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  filterTrack === 'python'
+                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${filterTrack === 'python'
                     ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 Python / AI
               </button>
               <button
                 type="button"
                 onClick={() => setFilterTrack('iot')}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  filterTrack === 'iot'
+                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${filterTrack === 'iot'
                     ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 IoT & Embedded
               </button>
@@ -1132,13 +1125,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Project Cards Grid with Framer Motion Layout */}
-          <motion.div 
+          <motion.div
             layout
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           >
             <AnimatePresence>
               {filteredProjects.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -1212,7 +1205,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                           </span>
                         )}
 
-                        <Link 
+                        <Link
                           href="/dashboard"
                           className="text-[var(--text-secondary)] hover:text-[var(--text-pure)] inline-flex items-center gap-1 font-medium cursor-pointer"
                         >
@@ -1228,7 +1221,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
 
           <div className="text-center pt-4">
-            <Link 
+            <Link
               href="/dashboard"
               className="btn btn-secondary text-xs inline-flex items-center gap-2 cursor-pointer font-medium px-5 py-2.5 rounded-xl shadow-2xs"
             >
@@ -1242,7 +1235,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Redesigned Bento Workflow Section (Upgraded from Plain 01/02/03 Boxes) */}
       <section id="workflow" className="py-16 sm:py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
-          
+
           {/* Section Header */}
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[11px] font-medium text-[var(--text-secondary)]">
@@ -1346,7 +1339,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Row 1: Sliding Left */}
             <div className="perspective-marquee-track-left flex gap-5">
               {[...row1Perspectives, ...row1Perspectives].map((item, idx) => (
-                <div 
+                <div
                   key={`r1-${item.id}-${idx}`}
                   className="w-[285px] sm:w-[410px] shrink-0 bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-4 transition-all duration-300 shadow-2xs hover:shadow-xl hover:-translate-y-1.5 group select-none relative"
                 >
@@ -1394,9 +1387,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {item.skills.map((skill, skIdx) => (
-                        <span key={skIdx} className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                          {skill}
-                        </span>
+                        <TechBadge key={skIdx} name={skill} />
                       ))}
                     </div>
                   </div>
@@ -1407,7 +1398,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Row 2: Sliding Right (Reverse) */}
             <div className="perspective-marquee-track-right flex gap-5">
               {[...row2Perspectives, ...row2Perspectives].map((item, idx) => (
-                <div 
+                <div
                   key={`r2-${item.id}-${idx}`}
                   className="w-[285px] sm:w-[410px] shrink-0 bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-4 transition-all duration-300 shadow-2xs hover:shadow-xl hover:-translate-y-1.5 group select-none relative"
                 >
@@ -1459,9 +1450,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {item.skills.map((skill, skIdx) => (
-                        <span key={skIdx} className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                          {skill}
-                        </span>
+                        <TechBadge key={skIdx} name={skill} />
                       ))}
                     </div>
                   </div>
@@ -1500,7 +1489,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {faqs.map((faq, index) => {
               const isOpen = openFaq === index;
               return (
-                <div 
+                <div
                   key={index}
                   className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden transition-all shadow-2xs"
                 >
@@ -1510,14 +1499,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-[var(--text-pure)] hover:text-[var(--accent-primary)] transition-colors cursor-pointer"
                   >
                     <span>{faq.q}</span>
-                    <ChevronDown 
-                      size={16} 
-                      className={`text-[var(--text-tertiary)] transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} 
+                    <ChevronDown
+                      size={16}
+                      className={`text-[var(--text-tertiary)] transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
                   <AnimatePresence initial={false}>
                     {isOpen && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -1549,7 +1538,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="pt-2">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} className="inline-block">
-              <Link 
+              <Link
                 href={isAuthenticated ? "/dashboard" : "/sign-up"}
                 className="px-6 py-3 rounded-xl bg-[var(--text-pure)] text-[var(--text-inverse)] text-xs sm:text-sm font-semibold inline-flex items-center gap-2 shadow-sm hover:opacity-95 transition-opacity cursor-pointer"
               >
@@ -1565,10 +1554,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <footer className="mt-auto border-t border-[var(--border-subtle)] py-8 text-xs text-[var(--text-tertiary)] bg-[var(--bg-surface)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-2.5 font-mono text-[11px] justify-center sm:justify-start">
-            <img 
-              src="/icon.webp" 
-              alt="BuildLab" 
-              className="w-5 h-5 rounded-sm object-contain shrink-0" 
+            <img
+              src="/icon.webp"
+              alt="BuildLab"
+              className="w-5 h-5 rounded-sm object-contain shrink-0"
             />
             <span className="leading-relaxed">BuildLab by I2IT • Hope Foundation&apos;s International Institute of Information Technology, Pune</span>
           </div>
@@ -1577,10 +1566,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Link href="/sign-in" className="hover:text-[var(--text-primary)] transition-colors">Sign in</Link>
             <Link href="/sign-up" className="hover:text-[var(--text-primary)] transition-colors">Register</Link>
             <Link href="/dashboard" className="hover:text-[var(--text-primary)] transition-colors">Workspace</Link>
-            <a 
-              href="https://github.com" 
-              target="_blank" 
-              rel="noreferrer" 
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noreferrer"
               className="hover:text-[var(--text-primary)] transition-colors inline-flex items-center gap-1"
             >
               <span>GitHub</span>

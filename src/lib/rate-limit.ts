@@ -1,3 +1,5 @@
+import { RateLimitError } from "@/lib/errors";
+
 /**
  * In-memory sliding-window rate limiter for sensitive administrative actions.
  */
@@ -64,4 +66,23 @@ export function checkRateLimit(
     resetSeconds: Math.ceil(windowMs / 1000),
   };
 }
+
+/**
+ * Asserts that the rate limit has not been exceeded, throwing a custom RateLimitError if it has.
+ */
+export function assertRateLimit(
+  key: string,
+  limit: number = 5,
+  windowMs: number = 60 * 1000,
+  customMessage?: string
+): void {
+  const result = checkRateLimit(key, limit, windowMs);
+  if (!result.success) {
+    throw new RateLimitError(
+      customMessage || `Too many requests. Please wait ${result.resetSeconds}s before retrying.`,
+      result.resetSeconds
+    );
+  }
+}
+
 
