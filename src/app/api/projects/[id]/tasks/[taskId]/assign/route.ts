@@ -28,7 +28,7 @@ function isAuthorizedToAssign(
 
 /**
  * Validate that the requested assignee is an accepted project member.
- * Returns true if the user is the project owner or has an accepted ProjectMember record.
+ * A user is an accepted member if they are the project owner or exist in ProjectMember.
  */
 async function validateProjectAssignee(
   projectId: string,
@@ -43,14 +43,7 @@ async function validateProjectAssignee(
   });
 
   const isOwner = projectOwnerId === assigneeId;
-  const isPendingOrRejected =
-    Boolean(assigneeMember) &&
-    (assigneeMember!.role.toLowerCase() === "pending" ||
-      assigneeMember!.role.toLowerCase() === "rejected" ||
-      (assigneeMember as unknown as { status?: string }).status === "pending" ||
-      (assigneeMember as unknown as { status?: string }).status === "rejected");
-
-  const isAccepted = isOwner || (Boolean(assigneeMember) && !isPendingOrRejected);
+  const isAccepted = isOwner || Boolean(assigneeMember);
 
   return { isAccepted, member: assigneeMember };
 }
