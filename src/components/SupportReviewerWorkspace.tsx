@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  FileText, 
-  ShieldCheck, 
-  Cloud, 
-  Cpu, 
-  Users, 
+import {
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  FileText,
+  ShieldCheck,
+  Cloud,
+  Cpu,
+  Users,
   GraduationCap,
   Send,
   Sparkles,
@@ -37,6 +37,24 @@ interface SupportReviewerWorkspaceProps {
   onOpenCreateProject?: () => void;
 }
 
+export const formatReviewerIdentity = (reviewedBy?: string | null): { label: string; display: string } => {
+  if (!reviewedBy) {
+    return { label: 'Reviewer', display: 'Review Committee' };
+  }
+  const trimmed = reviewedBy.trim();
+  const isId =
+    trimmed.startsWith('usr_') ||
+    trimmed.startsWith('user_') ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed) ||
+    /^c[a-z0-9]{24}$/i.test(trimmed) ||
+    (!trimmed.includes(' ') && /^[a-zA-Z0-9_-]{20,}$/.test(trimmed));
+
+  if (isId) {
+    return { label: 'Reviewer ID', display: trimmed };
+  }
+  return { label: 'Reviewer Name', display: trimmed };
+};
+
 export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> = ({
   projects,
   currentUsername,
@@ -47,11 +65,17 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
   onOpenCreateProject
 }) => {
   const [activeMode, setActiveMode] = useState<'student' | 'reviewer'>('student');
+  const [selectedDepartment, setSelectedDepartment] = useState<'all' | 'computer' | 'it' | 'entc'>('all');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projects.find(p => p.supportApplication)?.id || projects[0]?.id || ''
   );
   const [notes, setNotes] = useState('');
   const [noConflictDeclared, setNoConflictDeclared] = useState(false);
+
+  // Department-filtered queue for reviewer desk
+  // Note: Department information is not stored in the database schema or returned by the projects API.
+  // When a specific department is selected, an unavailable-data state is presented rather than fabricating matches.
+  const filteredReviewerProjects = selectedDepartment === 'all' ? projects : [];
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
 
@@ -74,7 +98,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
 
   return (
     <div className="max-w-6xl mx-auto space-y-7">
-      
+
       {/* 1. Header & Navigation */}
       <div className="relative overflow-hidden rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] p-6 sm:p-7 shadow-sm">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -87,7 +111,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-pure)]">
               {activeMode === 'student' ? 'Campus Sponsorship & Grants' : 'Community Support Review Desk'}
             </h1>
-            
+
             <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
               {activeMode === 'student'
                 ? 'Official college backing for student open-source repositories: GitHub Organization transfer, funded cloud deployments, and faculty mentorship.'
@@ -130,10 +154,10 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
       {/* ============================================================== */}
       {activeMode === 'student' && (
         <div className="space-y-7">
-          
+
           {/* 2. Asymmetrical Resource & Grants Program Grid */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            
+
             {/* Major Highlight: College Org Admission (3 cols) */}
             <div className="md:col-span-3 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] p-6 flex flex-col justify-between shadow-sm space-y-5">
               <div className="space-y-3">
@@ -173,7 +197,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
 
             {/* Minor Highlights: Cloud, Hardware & Advisory (2 cols) */}
             <div className="md:col-span-2 space-y-3 flex flex-col justify-between">
-              
+
               {/* Perk A: Cloud Credits */}
               <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5 shadow-sm">
                 <div className="flex items-center justify-between">
@@ -267,7 +291,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
                   const isApproved = p.track === 'community_supported' || status === 'approved';
 
                   return (
-                    <div 
+                    <div
                       key={p.id}
                       className="p-4 sm:p-5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                     >
@@ -275,7 +299,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <div className="flex items-center gap-1.5">
                             <FolderGit2 size={15} className="text-blue-400 shrink-0" />
-                            <h4 
+                            <h4
                               onClick={() => onSelectProject?.(p)}
                               className="text-sm font-bold text-[var(--text-pure)] hover:text-blue-400 transition-colors cursor-pointer"
                             >
@@ -327,6 +351,25 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
                             </span>
                           )}
                         </div>
+
+                        {hasApp && (p.supportApplication?.reviewedBy || p.supportApplication?.decisionDate) && (
+                          <div className="text-[11px] text-[var(--text-tertiary)] pt-1 flex items-center gap-1.5 flex-wrap">
+                            <span>
+                              {(() => {
+                                const rev = formatReviewerIdentity(p.supportApplication.reviewedBy);
+                                return (
+                                  <>
+                                    {rev.label}: <strong className="text-[var(--text-primary)]">{rev.display}</strong>
+                                  </>
+                                );
+                              })()}
+                            </span>
+                            {p.supportApplication.decisionDate && <span>• {p.supportApplication.decisionDate}</span>}
+                            {p.supportApplication.reviewerNotes && (
+                              <span className="text-[var(--text-secondary)] italic truncate max-w-md">"{p.supportApplication.reviewerNotes}"</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2.5 shrink-0 self-start md:self-center">
@@ -417,7 +460,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {communitySupportedProjects.map(p => (
-                  <div 
+                  <div
                     key={p.id}
                     onClick={() => onSelectProject?.(p)}
                     className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] space-y-3 shadow-sm cursor-pointer transition-all"
@@ -521,7 +564,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
       {/* ============================================================== */}
       {activeMode === 'reviewer' && (
         <div className="space-y-6">
-          
+
           {/* Admin Context Banner */}
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3 text-xs text-amber-200">
             <ShieldCheck size={18} className="text-amber-400 shrink-0 mt-0.5" />
@@ -534,51 +577,122 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Left Column: Queue (1 col) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
-                <span>Queue ({projects.length})</span>
+                <span>Queue ({filteredReviewerProjects.length})</span>
                 <span className="font-mono text-[10px] text-blue-400">Active</span>
               </div>
 
-              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                {projects.map(p => {
-                  const hasApp = !!p.supportApplication;
-                  const status = p.supportApplication?.status || 'independent';
-                  const isSelected = p.id === selectedProjectId;
-
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => setSelectedProjectId(p.id)}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        isSelected 
-                          ? 'bg-[var(--bg-surface-elevated)] border-blue-500 shadow-sm' 
-                          : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--border-hover)]'
-                      }`}
+              {/* A. Department Filter Chips */}
+              <div className="space-y-2 pb-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase font-semibold mr-0.5">
+                    Dept:
+                  </span>
+                  {[
+                    { id: 'all' as const, label: 'All' },
+                    { id: 'computer' as const, label: 'Computer (Unavailable)' },
+                    { id: 'it' as const, label: 'IT (Unavailable)' },
+                    { id: 'entc' as const, label: 'E&TC (Unavailable)' },
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`status-pill cursor-pointer text-[10.5px] py-0.5 px-2.5 ${selectedDepartment === chip.id ? 'active' : ''}`}
+                      onClick={() => setSelectedDepartment(chip.id)}
+                      title={chip.id !== 'all' ? 'Department metadata is not stored in the database or returned by the projects API' : 'Show all applications'}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-xs font-bold text-[var(--text-pure)] truncate">
-                          {p.name}
-                        </span>
-                        <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full capitalize shrink-0 ${
-                          status === 'approved'
-                            ? 'bg-emerald-500/10 text-emerald-400'
-                            : status === 'submitted'
-                            ? 'bg-amber-500/10 text-amber-400'
-                            : 'bg-zinc-800 text-zinc-400'
-                        }`}>
-                          {hasApp ? status.replace('_', ' ') : 'independent'}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-[var(--text-tertiary)] flex items-center justify-between font-mono">
-                        <span>@{p.owner.username}</span>
-                        <span>{p.maturity}</span>
-                      </div>
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+                {selectedDepartment !== 'all' && (
+                  <div className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/25 p-2 rounded-lg flex items-start gap-1.5 leading-relaxed">
+                    <AlertCircle size={13} className="shrink-0 mt-0.5 text-amber-400" />
+                    <span>Department metadata is unavailable: The database schema and projects API do not track academic departments.</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                {selectedDepartment !== 'all' ? (
+                  <div className="p-5 text-center text-xs space-y-2.5 bg-[var(--bg-surface)] border border-amber-500/30 rounded-xl">
+                    <div className="flex items-center justify-center gap-1.5 text-amber-400 font-semibold">
+                      <AlertCircle size={15} />
+                      <span>Department Filtering Unavailable</span>
                     </div>
-                  );
-                })}
+                    <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">
+                      Department filtering cannot be performed because department fields are not stored in the database or returned by the projects API.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDepartment('all')}
+                      className="btn btn-secondary btn-sm text-[11px] cursor-pointer"
+                    >
+                      View All Applications
+                    </button>
+                  </div>
+                ) : filteredReviewerProjects.length === 0 ? (
+                  <div className="p-5 text-center text-xs text-[var(--text-tertiary)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl">
+                    No applications currently in the review queue.
+                  </div>
+                ) : (
+                  filteredReviewerProjects.map(p => {
+                    const hasApp = !!p.supportApplication;
+                    const status = p.supportApplication?.status || 'independent';
+                    const isSelected = p.id === selectedProjectId;
+                    const isReviewed = hasApp && (p.supportApplication?.reviewedBy || p.supportApplication?.decisionDate || ['approved', 'changes_requested', 'declined'].includes(status));
+
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedProjectId(p.id)}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all space-y-1.5 ${
+                          isSelected
+                            ? 'bg-[var(--bg-surface-elevated)] border-blue-500 shadow-sm'
+                            : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--border-hover)]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-[var(--text-pure)] truncate">
+                            {p.name}
+                          </span>
+                          <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full capitalize shrink-0 ${
+                            status === 'approved'
+                              ? 'bg-emerald-500/10 text-emerald-400'
+                              : status === 'submitted'
+                              ? 'bg-amber-500/10 text-amber-400'
+                              : status === 'changes_requested'
+                              ? 'bg-rose-500/10 text-rose-400'
+                              : 'bg-zinc-800 text-zinc-400'
+                          }`}>
+                            {hasApp ? status.replace('_', ' ') : 'independent'}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-[var(--text-tertiary)] flex items-center justify-between font-mono">
+                          <span>@{p.owner.username}</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--bg-surface)] border border-[var(--border-subtle)] capitalize">
+                            {p.maturity}
+                          </span>
+                        </div>
+
+                        {/* Reviewer attribution preview */}
+                        {isReviewed && p.supportApplication?.reviewedBy && (
+                          <div className="text-[10px] text-blue-400 font-mono truncate pt-1 border-t border-[var(--border-subtle)]/50">
+                            {(() => {
+                              const rev = formatReviewerIdentity(p.supportApplication.reviewedBy);
+                              return `✓ ${rev.label}: ${rev.display}`;
+                            })()}
+                            {p.supportApplication.decisionDate ? ` (${p.supportApplication.decisionDate})` : ''}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -608,14 +722,81 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
                       </p>
                     </div>
 
-                    <span className="badge-tag shrink-0 capitalize">
-                      {selectedProject.track.replace('_', ' ')}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      {selectedProject.owner?.branchOrMajor && (
+                        <span className="text-[10.5px] font-mono px-2 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                          {selectedProject.owner.branchOrMajor}
+                        </span>
+                      )}
+                      <span className="badge-tag shrink-0 capitalize">
+                        {selectedProject.track.replace('_', ' ')}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Application Content */}
                   {selectedProject.supportApplication ? (
                     <div className="space-y-5 text-xs">
+                      {/* B. Official Reviewer Attribution Banner */}
+                      {(selectedProject.supportApplication.reviewedBy || selectedProject.supportApplication.decisionDate || ['approved', 'changes_requested', 'declined'].includes(selectedProject.supportApplication.status)) && (
+                        <div className="p-3.5 sm:p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-3 shadow-2xs">
+                          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)] flex-wrap gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <ShieldCheck size={16} className="text-blue-400 shrink-0" />
+                              <span className="font-bold text-xs text-[var(--text-pure)] truncate">
+                                Official Reviewer Attribution
+                              </span>
+                            </div>
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full capitalize font-semibold shrink-0 ${
+                              selectedProject.supportApplication.status === 'approved'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
+                                : selectedProject.supportApplication.status === 'changes_requested'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/25'
+                            }`}>
+                              Status: {selectedProject.supportApplication.status.replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 text-xs">
+                            {(() => {
+                              const rev = formatReviewerIdentity(selectedProject.supportApplication.reviewedBy);
+                              return (
+                                <div className="min-w-0">
+                                  <span className="text-[10.5px] font-mono text-[var(--text-tertiary)] block">{rev.label}:</span>
+                                  <span className="font-semibold text-[var(--text-pure)] break-words">
+                                    {rev.display}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+
+                            <div className="min-w-0">
+                              <span className="text-[10.5px] font-mono text-[var(--text-tertiary)] block">Review Date:</span>
+                              <span className="font-medium text-[var(--text-primary)] break-words">
+                                {selectedProject.supportApplication.decisionDate ? new Date(selectedProject.supportApplication.decisionDate).toLocaleDateString() : 'Decision Recorded'}
+                              </span>
+                            </div>
+
+                            <div className="min-w-0">
+                              <span className="text-[10.5px] font-mono text-[var(--text-tertiary)] block">Review Status:</span>
+                              <span className="font-medium text-[var(--text-primary)] capitalize">
+                                {selectedProject.supportApplication.status.replace('_', ' ')}
+                              </span>
+                            </div>
+                          </div>
+
+                          {selectedProject.supportApplication.reviewerNotes && (
+                            <div className="pt-2 border-t border-[var(--border-subtle)]/60 text-xs">
+                              <span className="text-[10.5px] font-mono text-[var(--text-tertiary)] block mb-0.5">Reviewer Feedback:</span>
+                              <p className="text-[var(--text-secondary)] italic leading-relaxed break-words">
+                                "{selectedProject.supportApplication.reviewerNotes}"
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-1">
                           <span className="text-[var(--text-tertiary)] block text-[11px] font-mono">Target Audience:</span>
@@ -670,7 +851,7 @@ export const SupportReviewerWorkspace: React.FC<SupportReviewerWorkspaceProps> =
                       {/* Conflict of Interest Declaration */}
                       <div className="pt-3 border-t border-[var(--border-subtle)]">
                         <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[var(--text-primary)]">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={noConflictDeclared}
                             onChange={(e) => setNoConflictDeclared(e.target.checked)}

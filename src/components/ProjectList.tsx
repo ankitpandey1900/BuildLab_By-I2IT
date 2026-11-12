@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectTrack, ProjectMaturity } from '../types';
-import { 
-  GitBranch, 
-  FolderGit2, 
+import {
+  GitBranch,
+  FolderGit2,
   Users,
   Sparkles,
   ArrowUpRight,
@@ -17,7 +17,9 @@ import {
   Server,
   Cpu,
   Bug,
-  BookOpen
+  BookOpen,
+  RefreshCw,
+  Check
 } from 'lucide-react';
 import { BentoGrid, BentoGridItem } from './ui/bento-grid';
 import { TechBadge } from './ui/TechBadge';
@@ -66,16 +68,37 @@ interface ProjectListProps {
   searchQuery: string;
   onSelectProject: (project: Project) => void;
   onRequestCollab: (project: Project) => void;
+  onClearSearch?: () => void;
 }
+
+const hasBeginnerTask = (project: Project): boolean => {
+  // Check standalone/platform tasks: must strictly be beginner and open
+  const hasInTasks = (project.tasks || []).some(
+    t => t.difficulty === 'beginner' && t.status === 'open'
+  );
+  if (hasInTasks) return true;
+
+  // Check role-specific problems in openRoles: must strictly be beginner and open
+  const hasInOpenRoles = (project.openRoles || []).some(
+    r => (r.problems || []).some(
+      p => p.difficulty === 'beginner' && p.status === 'open'
+    )
+  );
+  if (hasInOpenRoles) return true;
+
+  return false;
+};
 
 export const ProjectList: React.FC<ProjectListProps> = ({
   projects,
   searchQuery,
   onSelectProject,
-  onRequestCollab
+  onRequestCollab,
+  onClearSearch
 }) => {
   const [selectedTrack, setSelectedTrack] = useState<ProjectTrack | 'all'>('all');
   const [selectedMaturity, setSelectedMaturity] = useState<ProjectMaturity | 'all'>('all');
+  const [hasBeginnerTasks, setHasBeginnerTasks] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
 
   // Extract top skills
@@ -87,12 +110,12 @@ export const ProjectList: React.FC<ProjectListProps> = ({
       .map(entry => entry[0]);
   }, [projects]);
 
-  // Filtered projects
+  // Combined Filtered projects
   const filtered = useMemo(() => {
     return projects.filter(p => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const match = 
+        const match =
           p.name.toLowerCase().includes(q) ||
           p.summary.toLowerCase().includes(q) ||
           p.skills.some(s => s.toLowerCase().includes(q));
@@ -107,61 +130,130 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         return false;
       }
 
+      if (hasBeginnerTasks && !hasBeginnerTask(p)) {
+        return false;
+      }
+
       if (selectedSkill && !p.skills.includes(selectedSkill)) {
         return false;
       }
 
       return true;
     });
-  }, [projects, searchQuery, selectedTrack, selectedMaturity, selectedSkill]);
+  }, [projects, searchQuery, selectedTrack, selectedMaturity, hasBeginnerTasks, selectedSkill]);
+
+  const handleClearFilters = () => {
+    setSelectedTrack('all');
+    setSelectedMaturity('all');
+    setHasBeginnerTasks(false);
+    setSelectedSkill(null);
+    onClearSearch?.();
+    if (typeof document !== 'undefined') {
+      const searchInputs = document.querySelectorAll<HTMLInputElement>('input[placeholder*="Search" i]');
+      searchInputs.forEach(input => {
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        nativeSetter?.call(input, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  };
+
+  const isAnyFilterActive = selectedTrack !== 'all' || selectedMaturity !== 'all' || hasBeginnerTasks || selectedSkill !== null || searchQuery.trim().length > 0;
 
   return (
     <div className="filter-toolbar">
-      {/* Lean Filter Row: Responsive on all devices */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
-        {/* Track Switcher */}
-        <div className="segmented-control shrink-0">
-          <button
-            className={`segmented-btn ${selectedTrack === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectedTrack('all')}
-          >
-            All ({projects.length})
-          </button>
-          <button
-            className={`segmented-btn ${selectedTrack === 'community_supported' ? 'active' : ''}`}
-            onClick={() => setSelectedTrack('community_supported')}
-          >
-            <Users size={11} className="text-indigo-400" />
-            <span>Community</span>
-          </button>
-          <button
-            className={`segmented-btn ${selectedTrack === 'independent' ? 'active' : ''}`}
-            onClick={() => setSelectedTrack('independent')}
-          >
-            Independent
-          </button>
+      {/* Comprehensive Filter Controls */}
+      <div className="flex flex-col gap-3">
+        {/* Row 1: Track Filters & Beginner Tasks Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
+          {/* A. Track Filters: All Projects, Independent, Community Supported */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider font-mono mr-1">
+              Track:
+            </span>
+            <div className="status-pill-list overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                className={`status-pill cursor-pointer text-xs ${selectedTrack === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedTrack('all')}
+              >
+                All Projects ({projects.length})
+              </button>
+              <button
+                type="button"
+                className={`status-pill cursor-pointer text-xs ${selectedTrack === 'independent' ? 'active' : ''}`}
+                onClick={() => setSelectedTrack('independent')}
+              >
+                Independent
+              </button>
+              <button
+                type="button"
+                className={`status-pill flex items-center gap-1.5 cursor-pointer text-xs ${selectedTrack === 'community_supported' ? 'active' : ''}`}
+                onClick={() => setSelectedTrack('community_supported')}
+              >
+                <Users size={12} className={selectedTrack === 'community_supported' ? 'text-white' : 'text-indigo-400'} />
+                <span>Community Supported</span>
+              </button>
+            </div>
+          </div>
+
+          {/* C. Beginner Task Filter Toggle */}
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setHasBeginnerTasks(!hasBeginnerTasks)}
+              className={`status-pill flex items-center gap-1.5 cursor-pointer text-xs font-medium transition-all ${
+                hasBeginnerTasks
+                  ? 'active !bg-emerald-600 !text-white !border-emerald-500 shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-pure)]'
+              }`}
+              aria-pressed={hasBeginnerTasks}
+              title="Filter projects with open beginner-friendly starter tasks or first issues"
+            >
+              <Sparkles size={12} className={hasBeginnerTasks ? 'text-amber-300' : 'text-amber-400'} />
+              <span>Has Beginner Tasks</span>
+              {hasBeginnerTasks && <Check size={11} className="text-white ml-0.5" />}
+            </button>
+
+            {isAnyFilterActive && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="btn btn-ghost btn-sm text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-pure)] cursor-pointer"
+                title="Reset all active filters and search"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Maturity Filter */}
-        <div className="status-pill-list overflow-x-auto no-scrollbar shrink-0">
-          {(
-            [
-              { id: 'all', label: 'All', dot: null },
-              { id: 'idea', label: 'Idea', dot: 'bg-amber-400' },
-              { id: 'prototype', label: 'Prototype', dot: 'bg-violet-500' },
-              { id: 'active', label: 'Active', dot: 'bg-emerald-500' },
-            ] as const
-          ).map(mat => (
-            <button
-              key={mat.id}
-              type="button"
-              className={`status-pill flex items-center gap-1.5 ${selectedMaturity === mat.id ? 'active' : ''}`}
-              onClick={() => setSelectedMaturity(mat.id)}
-            >
-              {mat.dot && <span className={`w-1.5 h-1.5 rounded-full ${mat.dot}`} />}
-              <span>{mat.label}</span>
-            </button>
-          ))}
+        {/* Row 2: B. Maturity Filters: All Stages, Idea, Prototype, Active, Maintenance */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          <span className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider font-mono mr-1">
+            Stage:
+          </span>
+          <div className="status-pill-list overflow-x-auto no-scrollbar">
+            {(
+              [
+                { id: 'all' as const, label: 'All Stages', dot: null },
+                { id: 'idea' as const, label: 'Idea', dot: 'bg-amber-400' },
+                { id: 'prototype' as const, label: 'Prototype', dot: 'bg-violet-500' },
+                { id: 'active' as const, label: 'Active', dot: 'bg-emerald-500' },
+                { id: 'maintenance' as const, label: 'Maintenance', dot: 'bg-sky-400' },
+              ] as const
+            ).map(mat => (
+              <button
+                key={mat.id}
+                type="button"
+                className={`status-pill flex items-center gap-1.5 cursor-pointer text-xs ${selectedMaturity === mat.id ? 'active' : ''}`}
+                onClick={() => setSelectedMaturity(mat.id)}
+              >
+                {mat.dot && <span className={`w-1.5 h-1.5 rounded-full ${mat.dot}`} />}
+                <span>{mat.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -172,7 +264,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         </span>
         {selectedSkill && (
           <button
-            className="btn btn-ghost btn-sm text-[11px] py-0.5 px-2 text-[var(--text-primary)]"
+            className="btn btn-ghost btn-sm text-[11px] py-0.5 px-2 text-[var(--text-primary)] cursor-pointer"
             onClick={() => setSelectedSkill(null)}
           >
             Clear ({selectedSkill}) ✕
@@ -181,7 +273,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         {allSkills.slice(0, 8).map(skill => (
           <button
             key={skill}
-            className={`status-pill ${selectedSkill === skill ? 'active' : ''}`}
+            className={`status-pill cursor-pointer ${selectedSkill === skill ? 'active' : ''}`}
             style={{ fontSize: '11px', padding: '2px 8px' }}
             onClick={() => setSelectedSkill(selectedSkill === skill ? null : skill)}
           >
@@ -193,12 +285,22 @@ export const ProjectList: React.FC<ProjectListProps> = ({
       {/* Bento Grid: Lean, Uncluttered & Responsive */}
       <div className="mt-4">
         {filtered.length === 0 ? (
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-10 text-center text-[var(--text-secondary)]">
-            <FolderGit2 size={28} className="mx-auto mb-2 text-[var(--text-tertiary)]" />
-            <div className="text-sm font-medium text-[var(--text-pure)]">No projects match filters</div>
-            <div className="text-xs text-[var(--text-tertiary)] mt-1">
-              Try adjusting your search query or reset the track filter.
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-10 text-center text-[var(--text-secondary)] space-y-3">
+            <FolderGit2 size={32} className="mx-auto text-[var(--text-tertiary)]" />
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-[var(--text-pure)]">No projects match filters</div>
+              <div className="text-xs text-[var(--text-tertiary)] max-w-sm mx-auto leading-relaxed">
+                No repositories match your active combination of track, stage, beginner task toggle, or search query.
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="btn btn-secondary btn-sm text-xs inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-[var(--accent-primary)] hover:text-[var(--text-pure)] transition-all"
+            >
+              <RefreshCw size={12} />
+              <span>Clear Filters</span>
+            </button>
           </div>
         ) : (
           <BentoGrid>
@@ -284,7 +386,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                             </span>
                             <div className="flex items-center gap-1.5 overflow-hidden flex-nowrap">
                               {project.openRoles.slice(0, 2).map((r, idx) => (
-                                <span 
+                                <span
                                   key={idx}
                                   className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] shrink-0 max-w-[130px]"
                                 >
@@ -333,7 +435,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                         </span>
                       </div>
 
-                      <button 
+                      <button
                         className="btn btn-secondary btn-sm text-[11px] px-2.5 py-1 font-medium hover:border-[var(--accent-primary)] hover:text-[var(--text-pure)] transition-all shrink-0 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
