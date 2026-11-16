@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Project, ProjectReadme, StudentProfile } from '../types';
-import { 
-  ArrowLeft, 
-  ExternalLink, 
-  ShieldCheck, 
-  Users, 
-  Terminal, 
+import {
+  ArrowLeft,
+  ExternalLink,
+  ShieldCheck,
+  Users,
+  Terminal,
   AlertCircle,
   GitBranch,
   Calendar,
@@ -26,7 +26,10 @@ import {
   Archive,
   Plus,
   X,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  UserCheck,
+  FolderGit2
 } from 'lucide-react';
 import { TechBadge } from './ui/TechBadge';
 import { MarkdownRenderer } from './ui/MarkdownRenderer';
@@ -97,6 +100,167 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [taskRole, setTaskRole] = useState('');
   const [taskFiles, setTaskFiles] = useState('');
   const [isSavingTask, setIsSavingTask] = useState(false);
+
+  // Local handover state
+  const [localHandoverFlagged, setLocalHandoverFlagged] = useState(Boolean(project.handoverFlagged));
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
+  const [selectedSuccessorId, setSelectedSuccessorId] = useState('');
+  const [isSubmittingHandover, setIsSubmittingHandover] = useState(false);
+  const [handoverError, setHandoverError] = useState<string | null>(null);
+  const [handoverSuccess, setHandoverSuccess] = useState<string | null>(null);
+
+  // Task assignment states
+  const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);
+  const [taskAssignees, setTaskAssignees] = useState<Record<string, { id: string; name: string; avatarUrl?: string }>>({});
+  const [taskAssignError, setTaskAssignError] = useState<{ taskId: string; message: string } | null>(null);
+  const [taskAssignSuccess, setTaskAssignSuccess] = useState<{ taskId: string; message: string } | null>(null);
+
+  // Accepted project team members for task assignment & team roster
+  const acceptedTeamMembers = useMemo(() => {
+    const list: { id: string; name: string; avatarUrl?: string; role: string; githubUsername?: string; githubUrl?: string }[] = [];
+    const seen = new Set<string>();
+
+    if (project.owner?.id) {
+      list.push({
+        id: project.owner.id,
+        name: project.owner.name,
+        avatarUrl: project.owner.avatarUrl,
+        role: 'Owner',
+        githubUsername: (project.owner as any).githubUsername,
+        githubUrl: (project.owner as any).githubUrl || ((project.owner as any).githubUsername ? `https://github.com/${(project.owner as any).githubUsername}` : undefined)
+      });
+      seen.add(project.owner.id);
+    }
+
+    (project.members || []).forEach(m => {
+      if ((m as any).status && (m as any).status !== 'accepted') return;
+      if (m.userId && !seen.has(m.userId)) {
+        list.push({
+          id: m.userId,
+          name: m.user?.name || 'Team Member',
+          avatarUrl: m.user?.avatarUrl,
+          role: m.role === 'maintainer' ? 'Maintainer' : 'Contributor',
+          githubUsername: (m.user as any)?.githubUsername,
+          githubUrl: (m.user as any)?.githubUrl || ((m.user as any)?.githubUsername ? `https://github.com/${(m.user as any).githubUsername}` : undefined)
+        });
+        seen.add(m.userId);
+      }
+    });
+
+    return list;
+  }, [project.owner, project.members]);
+
+  const maintainersList = useMemo(() => {
+    return (project.members || []).filter(m => m.role === 'maintainer');
+  }, [project.members]);
+
+  const contributorsList = useMemo(() => {
+    return (project.members || []).filter(m => m.role !== 'maintainer' && m.userId !== project.owner?.id);
+  }, [project.members, project.owner?.id]);
+
+  const getTaskAssignee = (taskId: string, originalAssigneeId?: string, originalAssignee?: { id: string; name: string; avatarUrl?: string }) => {
+    if (taskAssignees[taskId]) {
+      return taskAssignees[taskId];
+    }
+    if (originalAssignee) {
+      return originalAssignee;
+    }
+    if (originalAssigneeId) {
+      const found = acceptedTeamMembers.find(m => m.id === originalAssigneeId);
+      if (found) {
+        return { id: found.id, name: found.name, avatarUrl: found.avatarUrl };
+      }
+    }
+    return null;
+  };
+
+  const handleAssignTask = async (taskId: string, assigneeId: string) => {
+    if (!assigneeId) return;
+    setAssigningTaskId(taskId);
+    setTaskAssignError(null);
+    setTaskAssignSuccess(null);
+
+    const selectedMember = acceptedTeamMembers.find(m => m.id === assigneeId);
+
+    try {
+      const res = await fetch(`/api/projects/${project.id}/tasks/${taskId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigneeId }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error('Task assignment is currently unavailable: The backend endpoint (PATCH /api/projects/[id]/tasks/[taskId]/assign) is not implemented on the server.');
+        } else if (res.status === 401) {
+          throw new Error('User is not authenticated. Please sign in to assign tasks.');
+        } else if (res.status === 403) {
+          throw new Error('User does not have permission to assign tasks in this project.');
+        } else if (res.status === 400) {
+          throw new Error('Invalid request or invalid assignee.');
+        } else {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.message || `Failed to assign task (${res.status}).`);
+        }
+      }
+
+      // Successful assignment: update local state without full-page reload
+      if (selectedMember) {
+        setTaskAssignees(prev => ({
+          ...prev,
+          [taskId]: {
+            id: selectedMember.id,
+            name: selectedMember.name,
+            avatarUrl: selectedMember.avatarUrl,
+          }
+        }));
+      }
+      setTaskAssignSuccess({ taskId, message: `Task assigned to ${selectedMember?.name || 'member'}.` });
+      setTimeout(() => setTaskAssignSuccess(null), 3500);
+    } catch (err: any) {
+      setTaskAssignError({ taskId, message: err.message || 'Error assigning task.' });
+      setTimeout(() => setTaskAssignError(null), 5000);
+    } finally {
+      setAssigningTaskId(null);
+    }
+  };
+
+  const handleHandoverSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSuccessorId) {
+      setHandoverError('Please select an active maintainer as successor.');
+      return;
+    }
+    setIsSubmittingHandover(true);
+    setHandoverError(null);
+    setHandoverSuccess(null);
+
+    try {
+      const res = await fetch(`/api/projects/${project.id}/handover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newOwnerId: selectedSuccessorId }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('Sign in required.');
+        if (res.status === 403) throw new Error('Only the current project owner can initiate handover.');
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || 'Failed to submit handover request.');
+      }
+
+      setLocalHandoverFlagged(true);
+      setHandoverSuccess('Project flagged for handover. Note: The backend API sets handoverFlagged=true but does not persist the nominated successor ID.');
+      setTimeout(() => {
+        setIsHandoverModalOpen(false);
+        setHandoverSuccess(null);
+      }, 3500);
+    } catch (err: any) {
+      setHandoverError(err.message || 'Error processing handover.');
+    } finally {
+      setIsSubmittingHandover(false);
+    }
+  };
 
   const totalProblemsCount = project.openRoles.reduce((acc, r) => acc + (r.problems?.length || 0), 0);
 
@@ -175,7 +339,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
     <div className="max-w-6xl mx-auto space-y-5">
       {/* Top Back Navigation */}
       <div>
-        <button 
+        <button
           className="btn btn-ghost btn-sm text-[var(--text-secondary)] hover:text-[var(--text-pure)] -ml-2 text-xs flex items-center gap-1.5 cursor-pointer"
           onClick={onBack}
         >
@@ -183,6 +347,34 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
           <span>Back to directory</span>
         </button>
       </div>
+
+      {/* Project Handover Status Notice (Backend does not persist nominated successor ID) */}
+      {(project.handoverFlagged || localHandoverFlagged) && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-200 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <strong className="font-semibold text-amber-300 block text-sm">
+                  Project Flagged for Maintainer Handover
+                </strong>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  handoverFlagged: true
+                </span>
+              </div>
+              <p className="text-[11.5px] text-amber-200/80 leading-relaxed">
+                This repository has been flagged for maintainer transition. Note: The backend API sets <code>handoverFlagged: true</code> but does not persist the nominated successor in the database. Nominated successors cannot be identified from actual backend data.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 font-mono text-[11px] font-medium border border-amber-500/30">
+              <Clock size={12} />
+              <span>Handover Flagged</span>
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Project Header Banner */}
       <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-5 sm:p-6 shadow-sm">
@@ -260,10 +452,10 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-2 shrink-0 self-start flex-wrap">
             {project.repoUrl && (
-              <a 
-                href={project.repoUrl} 
-                target="_blank" 
-                rel="noreferrer" 
+              <a
+                href={project.repoUrl}
+                target="_blank"
+                rel="noreferrer"
                 className="btn btn-secondary text-xs"
               >
                 <ExternalLink size={13} />
@@ -273,18 +465,18 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
 
             {isMaintainer && (
               <>
-                <button 
+                <button
                   type="button"
-                  className="btn btn-secondary text-xs flex items-center gap-1.5 cursor-pointer" 
+                  className="btn btn-secondary text-xs flex items-center gap-1.5 cursor-pointer"
                   onClick={() => setIsEditOpen(true)}
                   title="Edit project details"
                 >
                   <Edit3 size={13} />
                   <span>Edit</span>
                 </button>
-                <button 
+                <button
                   type="button"
-                  className="btn btn-ghost text-xs text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-1.5 cursor-pointer" 
+                  className="btn btn-ghost text-xs text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-1.5 cursor-pointer"
                   onClick={() => setIsArchiveOpen(true)}
                   title="Archive project"
                 >
@@ -305,8 +497,8 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                   <MessageSquare size={13} />
                   <span>1:1 Mentor Chat</span>
                 </button>
-                <button 
-                  className="btn btn-primary text-xs" 
+                <button
+                  className="btn btn-primary text-xs"
                   onClick={() => onRequestCollab(project)}
                 >
                   <Users size={13} />
@@ -319,7 +511,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
 
         {/* GitHub / Linear Style Tab Navigation: High Contrast, Refined, Zero Clash */}
         <div className="project-tab-nav mt-5 pt-3">
-          <button 
+          <button
             type="button"
             className={`project-tab-btn ${activeTab === 'roles' ? 'active' : ''}`}
             onClick={() => setActiveTab('roles')}
@@ -330,7 +522,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
             </span>
           </button>
 
-          <button 
+          <button
             type="button"
             className={`project-tab-btn ${activeTab === 'readme' ? 'active' : ''}`}
             onClick={() => setActiveTab('readme')}
@@ -342,7 +534,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
             </span>
           </button>
 
-          <button 
+          <button
             type="button"
             className={`project-tab-btn ${activeTab === 'setup' ? 'active' : ''}`}
             onClick={() => setActiveTab('setup')}
@@ -354,7 +546,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
             </span>
           </button>
 
-          <button 
+          <button
             type="button"
             className={`project-tab-btn ${activeTab === 'support' ? 'active' : ''}`}
             onClick={() => setActiveTab('support')}
@@ -388,7 +580,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                   {isMaintainer && (
-                    <button 
+                    <button
                       type="button"
                       className="btn btn-primary btn-sm text-[11px] flex items-center gap-1 cursor-pointer"
                       onClick={() => setIsAddTaskOpen(true)}
@@ -397,7 +589,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                       <span>Add Task</span>
                     </button>
                   )}
-                  <button 
+                  <button
                     className="btn btn-secondary btn-sm text-[11px] cursor-pointer"
                     onClick={() => onRequestCollab(project)}
                   >
@@ -425,14 +617,82 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 ))}
               </div>
 
-              {project.openRoles.length === 0 ? (
-                <div className="p-6 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] text-center">
-                  All formal team positions are currently filled, but open-source pull requests and code reviews are welcome on GitHub.
-                </div>
-              ) : (
-                <div className="space-y-4 pt-1">
+              {(() => {
+                const hasOpenRoles = (project.openRoles || []).length > 0;
+                const standaloneTasks = (project.tasks || []).filter(
+                  t => !project.openRoles.some(r => r.role.toLowerCase() === (t.linkedRole || '').toLowerCase())
+                );
+                const hasAnyTasks = (project.tasks || []).length > 0;
+                const hasAnyRolesOrTasks = hasOpenRoles || hasAnyTasks;
+
+                if (!hasAnyRolesOrTasks) {
+                  return (
+                    <div className="p-8 sm:p-10 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center space-y-3 shadow-2xs">
+                      <div className="w-12 h-12 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center mx-auto text-[var(--text-tertiary)] shadow-2xs">
+                        <FolderGit2 size={22} className="text-[var(--text-secondary)]" />
+                      </div>
+                      <div className="space-y-1.5 max-w-md mx-auto">
+                        <h3 className="text-sm font-semibold text-[var(--text-pure)]">
+                          No Open Roles or Tasks Listed
+                        </h3>
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                          This repository does not currently have open collaborator roles or active milestone tasks.
+                          {isMaintainer
+                            ? ' As a maintainer, you can create the first starter task or role opening using the controls above.'
+                            : ' You can still pitch a custom contribution, review the local setup guide, or propose improvements on GitHub.'}
+                        </p>
+                      </div>
+                      <div className="pt-2 flex items-center justify-center gap-2.5 flex-wrap">
+                        {isMaintainer ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddTaskOpen(true)}
+                            className="btn btn-primary btn-sm text-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus size={13} />
+                            <span>Add First Task</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onRequestCollab(project)}
+                            className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Pitch a Custom Contribution</span>
+                          </button>
+                        )}
+                        {project.repoUrl && (
+                          <a
+                            href={project.repoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-ghost btn-sm text-xs flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-pure)] cursor-pointer"
+                          >
+                            <span>View GitHub Repo</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4 pt-1">
+                    {!hasOpenRoles && (
+                      <div className="p-4 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] flex items-center justify-between gap-3 flex-wrap">
+                        <span>All formal team positions are currently filled. Check the standalone tasks and milestone deliverables below.</span>
+                        <button
+                          type="button"
+                          className="text-xs text-[var(--accent-primary)] hover:underline font-medium cursor-pointer"
+                          onClick={() => onRequestCollab(project)}
+                        >
+                          Pitch a custom role →
+                        </button>
+                      </div>
+                    )}
                   {project.openRoles.map((role, idx) => (
-                    <div 
+                    <div
                       key={idx}
                       className="p-4 sm:p-5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] transition-all flex flex-col justify-between gap-3 shadow-2xs"
                     >
@@ -450,7 +710,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                             </span>
                           </div>
 
-                          <button 
+                          <button
                             className="btn btn-secondary btn-sm text-xs shrink-0 self-start sm:self-auto cursor-pointer"
                             onClick={() => onRequestCollab(project, role.role)}
                           >
@@ -490,96 +750,158 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                             <div className="space-y-2.5">
                               {role.problems
                                 .filter(prob => problemDifficultyFilter === 'all' || prob.difficulty === problemDifficultyFilter)
-                                .map((prob) => (
-                                  <div 
-                                    key={prob.id}
-                                    className="p-3.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] transition-all space-y-2 shadow-2xs"
-                                  >
-                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
-                                      <div className="space-y-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="font-mono text-[10.5px] text-[var(--text-tertiary)] font-semibold">
-                                            #{prob.id.replace('prob_', '')}
-                                          </span>
-                                          <span className="font-semibold text-xs text-[var(--text-pure)] leading-snug">
-                                            {prob.title}
-                                          </span>
-                                          <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono font-medium ${
-                                            prob.difficulty === 'beginner' 
-                                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/25'
-                                              : prob.difficulty === 'intermediate'
-                                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/25'
-                                              : 'bg-violet-500/10 text-violet-500 border border-violet-500/25'
-                                          }`}>
-                                            {prob.difficulty === 'beginner' ? 'Starter Task' : prob.difficulty}
-                                          </span>
+                                .map((prob) => {
+                                  const currentAssignee = getTaskAssignee(prob.id, (prob as any).assigneeId, (prob as any).assignee);
+                                  const isInProgress = prob.status === 'in_progress';
+
+                                  return (
+                                    <div
+                                      key={prob.id}
+                                      className="p-3.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] transition-all space-y-2 shadow-2xs"
+                                    >
+                                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                                        <div className="space-y-1.5 min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-mono text-[10.5px] text-[var(--text-tertiary)] font-semibold">
+                                              #{prob.id.replace('prob_', '')}
+                                            </span>
+                                            <span className="font-semibold text-xs text-[var(--text-pure)] leading-snug">
+                                              {prob.title}
+                                            </span>
+                                            <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono font-medium ${
+                                              prob.difficulty === 'beginner'
+                                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/25'
+                                                : prob.difficulty === 'intermediate'
+                                                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/25'
+                                                : 'bg-violet-500/10 text-violet-500 border border-violet-500/25'
+                                            }`}>
+                                              {prob.difficulty === 'beginner' ? 'Starter Task' : prob.difficulty}
+                                            </span>
+
+                                            {/* In Progress Badge */}
+                                            {isInProgress && (
+                                              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                                <span>In Progress</span>
+                                              </span>
+                                            )}
+
+                                            {/* Assignee Chip */}
+                                            {currentAssignee && (
+                                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-primary)] font-medium" title={`Assigned to ${currentAssignee.name}`}>
+                                                {currentAssignee.avatarUrl ? (
+                                                  <img src={currentAssignee.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+                                                ) : (
+                                                  <span className="w-3.5 h-3.5 rounded-full bg-indigo-500/20 text-indigo-400 text-[9px] flex items-center justify-center font-mono font-bold shrink-0">
+                                                    {currentAssignee.name ? currentAssignee.name.charAt(0) : 'U'}
+                                                  </span>
+                                                )}
+                                                <span className="truncate max-w-[120px]">{currentAssignee.name}</span>
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">
+                                            {prob.description}
+                                          </p>
+
+                                          {/* Assignment Error or Success alerts */}
+                                          {taskAssignError?.taskId === prob.id && (
+                                            <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded flex items-center gap-1.5">
+                                              <AlertCircle size={12} className="shrink-0" />
+                                              <span>{taskAssignError.message}</span>
+                                            </div>
+                                          )}
+                                          {taskAssignSuccess?.taskId === prob.id && (
+                                            <div className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded flex items-center gap-1.5">
+                                              <CheckCircle2 size={12} className="shrink-0" />
+                                              <span>{taskAssignSuccess.message}</span>
+                                            </div>
+                                          )}
                                         </div>
 
-                                        <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">
-                                          {prob.description}
-                                        </p>
+                                        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
+                                          {/* Task Assignee Selector (Project owners and maintainers) */}
+                                          {isMaintainer && (
+                                            <div className="flex items-center gap-1.5">
+                                              <select
+                                                disabled={assigningTaskId === prob.id}
+                                                value={currentAssignee?.id || ''}
+                                                onChange={(e) => handleAssignTask(prob.id, e.target.value)}
+                                                className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer outline-none focus:border-blue-500 max-w-[140px]"
+                                                title="Assign task to an accepted project team member"
+                                              >
+                                                <option value="">{currentAssignee ? 'Reassign...' : 'Assign to...'}</option>
+                                                {acceptedTeamMembers.map((member) => (
+                                                  <option key={member.id} value={member.id}>
+                                                    {member.name} ({member.role})
+                                                  </option>
+                                                ))}
+                                              </select>
+                                              {assigningTaskId === prob.id && (
+                                                <RefreshCw size={12} className="animate-spin text-blue-400 shrink-0" />
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {isMaintainer ? (
+                                            <select
+                                              value={prob.status || 'open'}
+                                              onChange={(e) => onUpdateTaskStatus?.(project.id, prob.id, e.target.value as any)}
+                                              className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
+                                            >
+                                              <option value="open">Status: Open</option>
+                                              <option value="in_progress">Status: In Progress</option>
+                                              <option value="resolved">Status: Resolved</option>
+                                            </select>
+                                          ) : (
+                                            prob.status === 'in_progress' ? null : prob.status === 'resolved' ? (
+                                              <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+                                                Resolved
+                                              </span>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm text-[11px] px-2.5 py-1 flex items-center gap-1 cursor-pointer"
+                                                onClick={() => onRequestCollab(project, role.role, prob.title)}
+                                              >
+                                                <span>Claim Task</span>
+                                              </button>
+                                            )
+                                          )}
+                                        </div>
                                       </div>
 
-                                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
-                                        {isMaintainer ? (
-                                          <select
-                                            value={prob.status || 'open'}
-                                            onChange={(e) => onUpdateTaskStatus?.(project.id, prob.id, e.target.value as any)}
-                                            className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
+                                      {/* Suggested Files & GitHub issue badge */}
+                                      <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-subtle)]/60 text-[10.5px] flex-wrap">
+                                        {prob.suggestedFiles && prob.suggestedFiles.length > 0 ? (
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-[var(--text-tertiary)] font-mono text-[10px]">Target files:</span>
+                                            {prob.suggestedFiles.map((file, fIdx) => (
+                                              <code key={fIdx} className="px-1.5 py-0.2 rounded bg-[var(--code-bg)] text-[var(--text-primary)] font-mono text-[10px] border border-[var(--border-subtle)]">
+                                                {file}
+                                              </code>
+                                            ))}
+                                          </div>
+                                        ) : <div />}
+
+                                        {prob.issueUrl && (
+                                          <a
+                                            href={prob.issueUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 text-[10.5px] font-mono px-2 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-colors ml-auto"
+                                            title="View linked GitHub Issue"
                                           >
-                                            <option value="open">Status: Open</option>
-                                            <option value="in_progress">Status: In Progress</option>
-                                            <option value="resolved">Status: Resolved</option>
-                                          </select>
-                                        ) : (
-                                          prob.status === 'in_progress' ? (
-                                            <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-amber-500/10 text-amber-500 border border-amber-500/25">
-                                              In Progress
-                                            </span>
-                                          ) : prob.status === 'resolved' ? (
-                                            <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
-                                              Resolved
-                                            </span>
-                                          ) : (
-                                            <button
-                                              type="button"
-                                              className="btn btn-primary btn-sm text-[11px] px-2.5 py-1 flex items-center gap-1 cursor-pointer"
-                                              onClick={() => onRequestCollab(project, role.role, prob.title)}
-                                            >
-                                              <span>Claim Task</span>
-                                            </button>
-                                          )
+                                            <GitBranch size={11} className="text-emerald-400" />
+                                            <span>GitHub Issue</span>
+                                            <ExternalLink size={10} />
+                                          </a>
                                         )}
                                       </div>
                                     </div>
-
-                                    {/* Suggested Files & GitHub link */}
-                                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-subtle)]/60 text-[10.5px] flex-wrap">
-                                      {prob.suggestedFiles && prob.suggestedFiles.length > 0 ? (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-[var(--text-tertiary)] font-mono text-[10px]">Target files:</span>
-                                          {prob.suggestedFiles.map((file, fIdx) => (
-                                            <code key={fIdx} className="px-1.5 py-0.2 rounded bg-[var(--code-bg)] text-[var(--text-primary)] font-mono text-[10px] border border-[var(--border-subtle)]">
-                                              {file}
-                                            </code>
-                                          ))}
-                                        </div>
-                                      ) : <div />}
-
-                                      {prob.issueUrl && (
-                                        <a
-                                          href={prob.issueUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="text-[var(--accent-primary)] hover:underline inline-flex items-center gap-1 ml-auto font-mono text-[10.5px]"
-                                        >
-                                          <span>Issue on GitHub</span>
-                                          <ExternalLink size={10} />
-                                        </a>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                             </div>
                           </div>
                         )}
@@ -597,60 +919,153 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                           <span className="font-semibold text-[var(--text-pure)]">Platform & Project Tasks ({standaloneTasks.length})</span>
                         </div>
                         <div className="space-y-2.5">
-                          {standaloneTasks.map((task) => (
-                            <div key={task.id} className="p-3.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-2 shadow-2xs">
-                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
-                                <div className="space-y-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-semibold text-xs text-[var(--text-pure)] leading-snug">{task.title}</span>
-                                    <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono font-medium ${
-                                      task.difficulty === 'beginner' 
-                                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/25'
-                                        : task.difficulty === 'intermediate'
-                                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/25'
-                                        : 'bg-violet-500/10 text-violet-500 border border-violet-500/25'
-                                    }`}>
-                                      {task.difficulty}
-                                    </span>
+                          {standaloneTasks.map((task) => {
+                            const currentAssignee = getTaskAssignee(task.id, (task as any).assigneeId, (task as any).assignee);
+                            const isInProgress = task.status === 'in_progress';
+
+                            return (
+                              <div key={task.id} className="p-3.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-2 shadow-2xs">
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                                  <div className="space-y-1.5 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-semibold text-xs text-[var(--text-pure)] leading-snug">{task.title}</span>
+                                      <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono font-medium ${
+                                        task.difficulty === 'beginner'
+                                          ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/25'
+                                          : task.difficulty === 'intermediate'
+                                          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/25'
+                                          : 'bg-violet-500/10 text-violet-500 border border-violet-500/25'
+                                      }`}>
+                                        {task.difficulty}
+                                      </span>
+
+                                      {/* In Progress Badge */}
+                                      {isInProgress && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded font-mono font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                          <span>In Progress</span>
+                                        </span>
+                                      )}
+
+                                      {/* Assignee Chip */}
+                                      {currentAssignee && (
+                                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-primary)] font-medium" title={`Assigned to ${currentAssignee.name}`}>
+                                          {currentAssignee.avatarUrl ? (
+                                            <img src={currentAssignee.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+                                          ) : (
+                                            <span className="w-3.5 h-3.5 rounded-full bg-indigo-500/20 text-indigo-400 text-[9px] flex items-center justify-center font-mono font-bold shrink-0">
+                                              {currentAssignee.name ? currentAssignee.name.charAt(0) : 'U'}
+                                            </span>
+                                          )}
+                                          <span className="truncate max-w-[120px]">{currentAssignee.name}</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{task.description}</p>
+
+                                    {/* Task assignment error/success alerts */}
+                                    {taskAssignError?.taskId === task.id && (
+                                      <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded flex items-center gap-1.5">
+                                        <AlertCircle size={12} className="shrink-0" />
+                                        <span>{taskAssignError.message}</span>
+                                      </div>
+                                    )}
+                                    {taskAssignSuccess?.taskId === task.id && (
+                                      <div className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded flex items-center gap-1.5">
+                                        <CheckCircle2 size={12} className="shrink-0" />
+                                        <span>{taskAssignSuccess.message}</span>
+                                      </div>
+                                    )}
                                   </div>
-                                  <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{task.description}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
-                                  {isMaintainer ? (
-                                    <select
-                                      value={task.status || 'open'}
-                                      onChange={(e) => onUpdateTaskStatus?.(project.id, task.id, e.target.value as any)}
-                                      className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
-                                    >
-                                      <option value="open">Status: Open</option>
-                                      <option value="in_progress">Status: In Progress</option>
-                                      <option value="resolved">Status: Resolved</option>
-                                    </select>
-                                  ) : (
-                                    task.status === 'in_progress' ? (
-                                      <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-amber-500/10 text-amber-500 border border-amber-500/25">In Progress</span>
-                                    ) : task.status === 'resolved' ? (
-                                      <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">Resolved</span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn btn-primary btn-sm text-[11px] px-2.5 py-1 flex items-center gap-1 cursor-pointer"
-                                        onClick={() => onRequestCollab(project, undefined, task.title)}
+
+                                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
+                                    {/* Task Assignee Selector (Project owners and maintainers) */}
+                                    {isMaintainer && (
+                                      <div className="flex items-center gap-1.5">
+                                        <select
+                                          disabled={assigningTaskId === task.id}
+                                          value={currentAssignee?.id || ''}
+                                          onChange={(e) => handleAssignTask(task.id, e.target.value)}
+                                          className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer outline-none focus:border-blue-500 max-w-[140px]"
+                                          title="Assign task to an accepted project team member"
+                                        >
+                                          <option value="">{currentAssignee ? 'Reassign...' : 'Assign to...'}</option>
+                                          {acceptedTeamMembers.map((member) => (
+                                            <option key={member.id} value={member.id}>
+                                              {member.name} ({member.role})
+                                            </option>
+                                          ))}
+                                        </select>
+                                        {assigningTaskId === task.id && (
+                                          <RefreshCw size={12} className="animate-spin text-blue-400 shrink-0" />
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {isMaintainer ? (
+                                      <select
+                                        value={task.status || 'open'}
+                                        onChange={(e) => onUpdateTaskStatus?.(project.id, task.id, e.target.value as any)}
+                                        className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
                                       >
-                                        <span>Claim Task</span>
-                                      </button>
-                                    )
+                                        <option value="open">Status: Open</option>
+                                        <option value="in_progress">Status: In Progress</option>
+                                        <option value="resolved">Status: Resolved</option>
+                                      </select>
+                                    ) : (
+                                      task.status === 'in_progress' ? null : task.status === 'resolved' ? (
+                                        <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">Resolved</span>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="btn btn-primary btn-sm text-[11px] px-2.5 py-1 flex items-center gap-1 cursor-pointer"
+                                          onClick={() => onRequestCollab(project, undefined, task.title)}
+                                        >
+                                          <span>Claim Task</span>
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Suggested Files & GitHub issue badge */}
+                                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-subtle)]/60 text-[10.5px] flex-wrap">
+                                  {task.suggestedFiles && task.suggestedFiles.length > 0 ? (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-[var(--text-tertiary)] font-mono text-[10px]">Target files:</span>
+                                      {task.suggestedFiles.map((file, fIdx) => (
+                                        <code key={fIdx} className="px-1.5 py-0.2 rounded bg-[var(--code-bg)] text-[var(--text-primary)] font-mono text-[10px] border border-[var(--border-subtle)]">
+                                          {file}
+                                        </code>
+                                      ))}
+                                    </div>
+                                  ) : <div />}
+
+                                  {task.issueUrl && (
+                                    <a
+                                      href={task.issueUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10.5px] font-mono px-2 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)] transition-colors ml-auto"
+                                      title="View linked GitHub Issue"
+                                    >
+                                      <GitBranch size={11} className="text-emerald-400" />
+                                      <span>GitHub Issue</span>
+                                      <ExternalLink size={10} />
+                                    </a>
                                   )}
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
                   })()}
                 </div>
-              )}
+              );
+            })()}
             </div>
           )}
 
@@ -670,12 +1085,12 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 </div>
 
                 {/* Hidden input for local file upload */}
-                <input 
-                  type="file" 
-                  ref={readmeFileInputRef} 
-                  onChange={handleUploadReadmeFile} 
-                  accept=".md,.markdown,.txt" 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={readmeFileInputRef}
+                  onChange={handleUploadReadmeFile}
+                  accept=".md,.markdown,.txt"
+                  className="hidden"
                 />
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -715,8 +1130,8 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                     <button
                       type="button"
                       className={`px-3 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
-                        readmeViewMode === 'preview' 
-                          ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs font-semibold' 
+                        readmeViewMode === 'preview'
+                          ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs font-semibold'
                           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                       onClick={() => setReadmeViewMode('preview')}
@@ -726,8 +1141,8 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                     <button
                       type="button"
                       className={`px-3 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
-                        readmeViewMode === 'raw' 
-                          ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs font-semibold' 
+                        readmeViewMode === 'raw'
+                          ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs font-semibold'
                           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                       onClick={() => setReadmeViewMode('raw')}
@@ -810,7 +1225,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 ) : (
                   <div className="space-y-2.5">
                     {project.firstIssues.map(issue => (
-                      <div 
+                      <div
                         key={issue.id}
                         className="p-3 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs"
                       >
@@ -829,10 +1244,10 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                         </div>
 
                         {issue.issueUrl && (
-                          <a 
-                            href={issue.issueUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
+                          <a
+                            href={issue.issueUrl}
+                            target="_blank"
+                            rel="noreferrer"
                             className="btn btn-secondary btn-sm text-xs shrink-0"
                           >
                             <ExternalLink size={12} />
@@ -908,7 +1323,7 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                   <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto mb-4 leading-relaxed">
                     Sponsorship provides official college GitHub organization placement, infrastructure credits, and advisor matching.
                   </p>
-                  <button 
+                  <button
                     className="btn btn-primary text-xs cursor-pointer"
                     onClick={() => onApplySupport(project)}
                   >
@@ -928,10 +1343,10 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
               Maintainer
             </h3>
             <div className="flex items-center gap-3">
-              <img 
-                src={project.owner.avatarUrl} 
-                alt={project.owner.name} 
-                className="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)] shrink-0" 
+              <img
+                src={project.owner.avatarUrl}
+                alt={project.owner.name}
+                className="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)] shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -1009,42 +1424,169 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
             </div>
           </div>
 
-          {/* Project Team Members */}
-          {project.members && project.members.length > 0 && (
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-4 shadow-sm text-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider font-mono">
-                  Active Team Members
-                </h3>
-                <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
-                  {project.members.length} members
-                </span>
-              </div>
-              <div className="space-y-2">
-                {project.members.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {member.user?.avatarUrl ? (
-                        <img src={member.user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-[10px] font-mono shrink-0">
-                          {member.user?.name ? member.user.name.charAt(0) : 'U'}
-                        </div>
-                      )}
-                      <span className="text-[11.5px] text-[var(--text-primary)] truncate font-medium">
-                        {member.user?.name || 'Contributor'}
+          {/* Project Team Roster (Task 2.3 A) */}
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-4 shadow-sm text-xs space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
+              <h3 className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Users size={13} className="text-blue-400" />
+                <span>Project Team Roster</span>
+              </h3>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
+                {acceptedTeamMembers.length} member{acceptedTeamMembers.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* 1. Owner */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider block font-semibold">
+                Owner
+              </span>
+              <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <img
+                    src={project.owner.avatarUrl}
+                    alt={project.owner.name}
+                    className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-amber-500/30"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11.5px] font-semibold text-[var(--text-pure)] truncate">
+                        {project.owner.name}
                       </span>
+                      {project.owner.collegeVerified && (
+                        <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
+                      )}
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded font-mono capitalize bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                      {member.role}
-                    </span>
+                    {/* GitHub link if data provides it */}
+                    {(() => {
+                      const gh = (project.owner as any).githubUrl || ((project.owner as any).githubUsername ? `https://github.com/${(project.owner as any).githubUsername}` : undefined);
+                      if (!gh) return null;
+                      return (
+                        <a
+                          href={gh}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-[var(--text-tertiary)] hover:text-blue-400 font-mono inline-flex items-center gap-0.5"
+                        >
+                          <span>@{(project.owner as any).githubUsername || 'github'}</span>
+                          <ExternalLink size={9} />
+                        </a>
+                      );
+                    })()}
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                    Owner
+                  </span>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setIsHandoverModalOpen(true)}
+                      className="btn btn-ghost btn-sm text-[10px] py-0.5 px-1.5 text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                      title="Nominate maintainer successor for project ownership"
+                    >
+                      Handover
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Project Continuity / Handover */}
+            {/* 2. Maintainers */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider block font-semibold">
+                  Maintainers ({maintainersList.length})
+                </span>
+              </div>
+              {maintainersList.length > 0 ? (
+                <div className="space-y-1.5">
+                  {maintainersList.map((m) => {
+                    const gh = (m.user as any)?.githubUrl || ((m.user as any)?.githubUsername ? `https://github.com/${(m.user as any).githubUsername}` : undefined);
+                    return (
+                      <div key={m.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {m.user?.avatarUrl ? (
+                            <img src={m.user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0 ring-1 ring-indigo-500/30" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-mono font-bold shrink-0">
+                              {m.user?.name ? m.user.name.charAt(0) : 'M'}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <span className="text-[11.5px] text-[var(--text-pure)] truncate font-medium block">
+                              {m.user?.name || 'Maintainer'}
+                            </span>
+                            {gh && (
+                              <a href={gh} target="_blank" rel="noreferrer" className="text-[10px] text-[var(--text-tertiary)] hover:text-blue-400 font-mono inline-flex items-center gap-0.5">
+                                <span>@{(m.user as any)?.githubUsername || 'github'}</span>
+                                <ExternalLink size={9} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 shrink-0">
+                          Maintainer
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-[11px] text-[var(--text-tertiary)] italic p-2 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                  No designated maintainers yet.
+                </div>
+              )}
+            </div>
+
+            {/* 3. Contributors */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider block font-semibold">
+                Contributors ({contributorsList.length})
+              </span>
+              {contributorsList.length > 0 ? (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {contributorsList.map((m) => {
+                    const gh = (m.user as any)?.githubUrl || ((m.user as any)?.githubUsername ? `https://github.com/${(m.user as any).githubUsername}` : undefined);
+                    return (
+                      <div key={m.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {m.user?.avatarUrl ? (
+                            <img src={m.user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-[10px] font-mono shrink-0">
+                              {m.user?.name ? m.user.name.charAt(0) : 'C'}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <span className="text-[11.5px] text-[var(--text-primary)] truncate font-medium block">
+                              {m.user?.name || 'Contributor'}
+                            </span>
+                            {gh && (
+                              <a href={gh} target="_blank" rel="noreferrer" className="text-[10px] text-[var(--text-tertiary)] hover:text-blue-400 font-mono inline-flex items-center gap-0.5">
+                                <span>@{(m.user as any)?.githubUsername || 'github'}</span>
+                                <ExternalLink size={9} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] shrink-0">
+                          Contributor
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-[11px] text-[var(--text-tertiary)] italic p-2 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                  No additional contributors joined yet.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Project Continuity / Handover (Task 2.3 B) */}
           <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-4 text-xs shadow-sm">
             <div className="flex items-start gap-2 text-[var(--text-tertiary)] mb-2">
               <AlertCircle size={13} className="text-amber-500 shrink-0 mt-0.5" />
@@ -1055,12 +1597,24 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 </span>
               </div>
             </div>
-            <button 
-              className="btn btn-secondary btn-sm w-full text-xs mt-1 cursor-pointer"
-              onClick={() => onRequestHandover(project)}
-            >
-              Request maintainer handover
-            </button>
+            {isOwner ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm w-full text-xs mt-1 cursor-pointer flex items-center justify-center gap-1.5 hover:border-amber-500/50 hover:text-amber-300"
+                onClick={() => setIsHandoverModalOpen(true)}
+              >
+                <UserCheck size={13} className="text-amber-400" />
+                <span>Nominate Maintainer Successor</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm w-full text-xs mt-1 cursor-pointer"
+                onClick={() => onRequestHandover(project)}
+              >
+                Request maintainer handover
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1372,6 +1926,109 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                   className="btn btn-primary btn-sm cursor-pointer disabled:opacity-50"
                 >
                   {isSavingTask ? 'Adding...' : 'Add Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Handover Ownership Confirmation Modal (Task 2.3 B) */}
+      {isHandoverModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl max-w-md w-full p-4 sm:p-5 space-y-3.5 sm:space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5 sm:pb-3">
+              <div className="flex items-center gap-2 text-amber-400 min-w-0">
+                <AlertCircle size={18} className="shrink-0" />
+                <h2 className="text-sm font-bold text-[var(--text-pure)] truncate">Nominate Owner Successor</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsHandoverModalOpen(false);
+                  setHandoverError(null);
+                  setHandoverSuccess(null);
+                }}
+                className="text-[var(--text-secondary)] hover:text-[var(--text-pure)] cursor-pointer p-1 -mr-1"
+                aria-label="Close modal"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed break-words">
+              As the project owner, you can nominate an active maintainer as your successor to assume repository stewardship for <b className="text-[var(--text-pure)]">{project.name}</b>.
+            </p>
+
+            {handoverError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs break-words">
+                {handoverError}
+              </div>
+            )}
+
+            {handoverSuccess && (
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs break-words">
+                {handoverSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleHandoverSubmit} className="space-y-3.5 sm:space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-[var(--text-primary)] block mb-1.5">
+                  Select Active Maintainer as Successor:
+                </label>
+                {maintainersList.length > 0 ? (
+                  <select
+                    required
+                    value={selectedSuccessorId}
+                    onChange={(e) => setSelectedSuccessorId(e.target.value)}
+                    className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-xs text-[var(--text-pure)] outline-none focus:border-amber-500 cursor-pointer transition-colors"
+                  >
+                    <option value="">-- Choose an active maintainer --</option>
+                    {maintainersList.map((m) => (
+                      <option key={m.userId} value={m.userId}>
+                        {m.user?.name || 'Maintainer'}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-3 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-tertiary)] text-[11.5px] leading-relaxed">
+                    No active maintainers currently on the team roster. Promote an active contributor to maintainer before initiating leadership handover.
+                  </div>
+                )}
+              </div>
+
+              <div className="text-[11px] text-amber-300/90 bg-amber-500/10 p-3 rounded-lg border border-amber-500/30 space-y-1 leading-relaxed break-words">
+                <div className="font-semibold flex items-center gap-1.5 text-amber-300">
+                  <AlertCircle size={13} className="shrink-0" />
+                  <span>Backend Limitation Notice</span>
+                </div>
+                <p>
+                  The backend endpoint (<code className="break-all">POST /api/projects/{project.id}/handover</code>) sets <code className="break-all">handoverFlagged: true</code> on the repository, but does not persist the nominated successor ID in the database. Nominated successors cannot be tracked or notified automatically, and ownership does not change.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm cursor-pointer w-full sm:w-auto py-2 sm:py-1.5 text-center justify-center text-xs"
+                  onClick={() => setIsHandoverModalOpen(false)}
+                  disabled={isSubmittingHandover}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingHandover || maintainersList.length === 0 || !selectedSuccessorId}
+                  className="btn btn-primary btn-sm bg-amber-600 hover:bg-amber-500 border-amber-600 text-white cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 w-full sm:w-auto py-2 sm:py-1.5 text-xs font-semibold"
+                >
+                  {isSubmittingHandover ? (
+                    <>
+                      <RefreshCw size={12} className="animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Handover</span>
+                  )}
                 </button>
               </div>
             </form>
