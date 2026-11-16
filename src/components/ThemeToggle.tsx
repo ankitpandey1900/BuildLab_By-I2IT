@@ -84,7 +84,7 @@ export const ThemeToggle: React.FC = () => {
     {
       id: "dark",
       name: "Dark",
-      icon: <Moon size={14} className="text-indigo-400 shrink-0" />,
+      icon: <Moon size={14} className="text-[var(--accent-primary)] shrink-0" />,
     },
     {
       id: "light",
@@ -112,7 +112,7 @@ export const ThemeToggle: React.FC = () => {
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] hover:border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] transition-all cursor-pointer shadow-2xs group"
       >
         <div className="flex items-center justify-center w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] group-hover:scale-105 transition-transform">
-          {theme === "dark" && <Moon size={13} className="text-indigo-400" />}
+          {theme === "dark" && <Moon size={13} className="text-[var(--accent-primary)]" />}
           {theme === "light" && <Sun size={13} className="text-orange-500" />}
           {theme === "eye protect" && <Glasses size={13} className="text-amber-400" />}
         </div>

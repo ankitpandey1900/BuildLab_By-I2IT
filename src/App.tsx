@@ -533,7 +533,6 @@ export const App: React.FC<AppProps> = ({
                 projects={projects}
                 searchQuery={searchQuery}
                 onSelectProject={(p) => setSelectedProject(p)}
-                onRequestCollab={handleOpenCollabModal}
               />
             </>
           )
