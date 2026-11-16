@@ -42,11 +42,11 @@ export const CarouselIndicators: React.FC<CarouselIndicatorsProps> = ({
             {isSelected ? (
               <motion.span
                 layoutId={`active-carousel-pill-${carouselId}`}
-                className="h-2 w-7 rounded-full bg-white dark:bg-white shadow-[0_0_12px_rgba(255,255,255,0.45)]"
+                className="h-2 w-7 rounded-full bg-zinc-900 dark:bg-white shadow-[0_2px_8px_rgba(0,0,0,0.25)] dark:shadow-[0_0_12px_rgba(255,255,255,0.45)]"
                 transition={{ type: "spring", stiffness: 350, damping: 30 }}
               />
             ) : (
-              <span className="h-2 w-2 rounded-full bg-white/20 transition-all duration-200 group-hover:scale-125 group-hover:bg-white/40" />
+              <span className="h-2 w-2 rounded-full bg-zinc-400/40 dark:bg-white/20 transition-all duration-200 group-hover:scale-125 group-hover:bg-zinc-700 dark:group-hover:bg-white/40" />
             )}
           </button>
         );

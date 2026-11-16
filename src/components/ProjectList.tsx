@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { BentoGrid, BentoGridItem } from './ui/bento-grid';
 import { TechBadge } from './ui/TechBadge';
+import { TechIcon } from './ui/TechIcon';
 import { getMaturityColor } from '../lib/utils';
 
 const getRoleMicroIcon = (categoryOrRole?: string) => {
@@ -202,11 +203,10 @@ export const ProjectList: React.FC<ProjectListProps> = ({
             <button
               type="button"
               onClick={() => setHasBeginnerTasks(!hasBeginnerTasks)}
-              className={`status-pill flex items-center gap-1.5 cursor-pointer text-xs font-medium transition-all ${
-                hasBeginnerTasks
+              className={`status-pill flex items-center gap-1.5 cursor-pointer text-xs font-medium transition-all ${hasBeginnerTasks
                   ? 'active !bg-emerald-600 !text-white !border-emerald-500 shadow-xs'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-pure)]'
-              }`}
+                }`}
               aria-pressed={hasBeginnerTasks}
               title="Filter projects with open beginner-friendly starter tasks or first issues"
             >
@@ -273,11 +273,12 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         {allSkills.slice(0, 8).map(skill => (
           <button
             key={skill}
-            className={`status-pill cursor-pointer ${selectedSkill === skill ? 'active' : ''}`}
+            className={`status-pill ${selectedSkill === skill ? 'active' : ''}`}
             style={{ fontSize: '11px', padding: '2px 8px' }}
             onClick={() => setSelectedSkill(selectedSkill === skill ? null : skill)}
           >
-            {skill}
+            <TechIcon name={skill} className="w-3 h-3" />
+            <span>{skill}</span>
           </button>
         ))}
       </div>
