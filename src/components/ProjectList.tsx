@@ -1,23 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectTrack, ProjectMaturity } from '../types';
 import {
-  GitBranch,
   FolderGit2,
   Users,
   Sparkles,
   ArrowUpRight,
-  Star,
-  Palette,
-  Code2,
-  Settings,
-  Database,
-  Shield,
-  Smartphone,
-  Layers,
-  Server,
-  Cpu,
-  Bug,
-  BookOpen,
   RefreshCw,
   Check
 } from 'lucide-react';
@@ -26,49 +13,10 @@ import { TechBadge } from './ui/TechBadge';
 import { TechIcon } from './ui/TechIcon';
 import { getMaturityColor } from '../lib/utils';
 
-const getRoleMicroIcon = (categoryOrRole?: string) => {
-  const text = (categoryOrRole || '').toLowerCase();
-  if (text.includes('design') || text.includes('ui') || text.includes('ux')) {
-    return <Palette size={11} className="text-pink-500 shrink-0" />;
-  }
-  if (text.includes('auth') || text.includes('security') || text.includes('session')) {
-    return <Shield size={11} className="text-violet-500 shrink-0" />;
-  }
-  if (text.includes('data') || text.includes('sql') || text.includes('redis') || text.includes('cache')) {
-    return <Database size={11} className="text-rose-500 shrink-0" />;
-  }
-  if (text.includes('mobile') || text.includes('flutter') || text.includes('ios') || text.includes('android')) {
-    return <Smartphone size={11} className="text-cyan-500 shrink-0" />;
-  }
-  if (text.includes('ai') || text.includes('ml') || text.includes('model') || text.includes('data science')) {
-    return <Sparkles size={11} className="text-amber-500 shrink-0" />;
-  }
-  if (text.includes('devops') || text.includes('cloud') || text.includes('docker')) {
-    return <Server size={11} className="text-blue-500 shrink-0" />;
-  }
-  if (text.includes('fullstack') || text.includes('full stack')) {
-    return <Layers size={11} className="text-indigo-500 shrink-0" />;
-  }
-  if (text.includes('hardware') || text.includes('iot') || text.includes('embedded')) {
-    return <Cpu size={11} className="text-amber-600 shrink-0" />;
-  }
-  if (text.includes('qa') || text.includes('test')) {
-    return <Bug size={11} className="text-orange-500 shrink-0" />;
-  }
-  if (text.includes('doc') || text.includes('writer')) {
-    return <BookOpen size={11} className="text-teal-500 shrink-0" />;
-  }
-  if (text.includes('backend') || text.includes('api')) {
-    return <Settings size={11} className="text-emerald-500 shrink-0" />;
-  }
-  return <Code2 size={11} className="text-sky-500 shrink-0" />;
-};
-
 interface ProjectListProps {
   projects: Project[];
   searchQuery: string;
   onSelectProject: (project: Project) => void;
-  onRequestCollab: (project: Project) => void;
   onClearSearch?: () => void;
 }
 
@@ -94,7 +42,6 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   projects,
   searchQuery,
   onSelectProject,
-  onRequestCollab,
   onClearSearch
 }) => {
   const [selectedTrack, setSelectedTrack] = useState<ProjectTrack | 'all'>('all');
@@ -162,7 +109,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   const isAnyFilterActive = selectedTrack !== 'all' || selectedMaturity !== 'all' || hasBeginnerTasks || selectedSkill !== null || searchQuery.trim().length > 0;
 
   return (
-    <div className="filter-toolbar">
+    <div className="filter-toolbar [--accent-primary:#286b46] dark:[--accent-primary:#78c995]">
       {/* Comprehensive Filter Controls */}
       <div className="flex flex-col gap-3">
         {/* Row 1: Track Filters & Beginner Tasks Toggle */}
@@ -306,144 +253,70 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         ) : (
           <BentoGrid>
             {filtered.map((project) => {
+              const maturity = getMaturityColor(project.maturity);
               return (
                 <BentoGridItem
                   key={project.id}
-                  className="col-span-1"
+                  className="col-span-1 min-h-0"
                   onClick={() => onSelectProject(project)}
                 >
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      {/* 1. Card Header: Title & Popularity Stars */}
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h3 className="font-bold text-[var(--text-pure)] text-sm sm:text-base tracking-tight group-hover/bento:text-[var(--accent-blue)] transition-colors line-clamp-1 flex-1">
+                  <div className="flex flex-col gap-5">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-3 text-[11px]">
+                        <span className="inline-flex items-center gap-2 font-medium capitalize text-[var(--text-secondary)]">
+                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${maturity.dot}`} />
+                          {project.maturity}
+                        </span>
+                        <span className="max-w-[55%] truncate text-right text-[var(--text-tertiary)]">
+                          {project.owner.branchOrMajor}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h3 className="line-clamp-1 text-base font-semibold leading-snug text-[var(--text-pure)] transition-colors group-hover/bento:text-[var(--accent-primary)] sm:text-lg">
                           {project.name}
                         </h3>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="flex items-center gap-1 font-mono text-[11.5px] text-[var(--text-primary)]">
-                            <Star size={12} className="text-amber-400 fill-amber-400" />
-                            <span>{project.starsCount ?? 76}</span>
-                          </span>
-                          <ArrowUpRight size={14} className="text-[var(--text-tertiary)] group-hover/bento:text-[var(--text-pure)] group-hover/bento:translate-x-0.5 group-hover/bento:-translate-y-0.5 transition-all" />
-                        </div>
+                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                          {project.summary}
+                        </p>
                       </div>
 
-                      {/* 2. Track & Vitality Subline: Track Badge, Status Dot, Commit Count */}
-                      <div className="flex items-center gap-2 mb-2.5 text-xs flex-wrap">
-                        {project.track === 'community_supported' ? (
-                          <span className="badge-tag curated flex items-center gap-1.5">
-                            <Users size={10} />
-                            <span>Community</span>
-                          </span>
-                        ) : (
-                          <span className="badge-tag">
-                            Independent
-                          </span>
-                        )}
-                        {(() => {
-                          const mat = getMaturityColor(project.maturity);
-                          return (
-                            <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-                              <span className={`w-1.5 h-1.5 rounded-full ${mat.dot}`} />
-                              <span className="capitalize">{project.maturity}</span>
-                            </span>
-                          );
-                        })()}
-                        <span className="text-[var(--text-tertiary)]">•</span>
-                        {project.repoUrl ? (
-                          <span className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] font-mono">
-                            <GitBranch size={11} />
-                            <span>{project.verifiedCommitsCount} commits</span>
-                          </span>
-                        ) : (
-                          <span className="text-amber-500/90 text-[10px] font-sans font-medium">concept</span>
-                        )}
-                      </div>
-
-                      {/* 3. Summary: Clean, exactly 2 lines with fixed height to avoid vertical shift */}
-                      <p className="text-[var(--text-secondary)] text-xs leading-relaxed line-clamp-2 mb-3 h-9">
-                        {project.summary}
-                      </p>
-
-                      {/* 4. Tech Stack: Single row, no multi-line wrapping */}
-                      <div className="flex items-center gap-1.5 overflow-hidden flex-nowrap mb-3 h-7">
+                      <div className="flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden">
                         {project.skills.slice(0, 3).map(skill => (
                           <TechBadge key={skill} name={skill} />
                         ))}
                         {project.skills.length > 3 && (
-                          <span className="text-[10px] text-[var(--text-tertiary)] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] shrink-0">
+                          <span className="shrink-0 rounded bg-[var(--bg-surface-elevated)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-tertiary)]">
                             +{project.skills.length - 3}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* 5. Seeking Openings: Single-row sleek opportunity strip */}
-                      <div className="mb-4 h-7 flex items-center">
-                        {project.openRoles.length > 0 ? (
-                          <div className="flex items-center gap-1.5 overflow-hidden flex-nowrap w-full">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-mono font-bold tracking-wider shrink-0 uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                              Seeking
-                            </span>
-                            <div className="flex items-center gap-1.5 overflow-hidden flex-nowrap">
-                              {project.openRoles.slice(0, 2).map((r, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] shrink-0 max-w-[130px]"
-                                >
-                                  <span className="shrink-0">{getRoleMicroIcon(r.category || r.role)}</span>
-                                  <span className="truncate">{r.role}</span>
-                                </span>
-                              ))}
-                              {project.openRoles.length > 2 && (
-                                <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">
-                                  +{project.openRoles.length - 2}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-[var(--text-tertiary)] font-mono flex items-center gap-1">
-                            ✓ Team complete
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* 6. Unified Single Footer Row */}
-                    <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)] mt-auto">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {/* Contributor Avatars Cluster */}
-                        <div className="flex -space-x-1.5 overflow-hidden shrink-0">
-                          {(project.contributorAvatars || [
-                            project.owner.avatarUrl,
-                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-                            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-                          ]).slice(0, 3).map((avatarUrl, idx) => (
-                            <img
-                              key={idx}
-                              src={avatarUrl}
-                              alt="Contributor"
-                              className="w-5 h-5 rounded-full ring-2 ring-[var(--bg-surface)] object-cover shrink-0"
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[11.5px] font-medium text-[var(--text-primary)] truncate">
-                          @{project.owner.username}
+                    <div className="flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-4 text-xs">
+                      <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
+                        <Users size={14} aria-hidden="true" />
+                        <span>{project.collaboratorsCount} team</span>
+                      </span>
+                      {project.openRoles.length > 0 ? (
+                        <span className="whitespace-nowrap font-mono text-[11px] font-medium text-amber-500">
+                          {project.openRoles.length} role{project.openRoles.length === 1 ? '' : 's'} open
                         </span>
-                        <span className="text-[11px] text-[var(--text-tertiary)] hidden sm:inline">
-                          ({project.collaboratorsCount} dev{project.collaboratorsCount !== 1 ? 's' : ''})
+                      ) : (
+                        <span className="whitespace-nowrap text-[11px] text-[var(--text-tertiary)]">
+                          Active team
                         </span>
-                      </div>
-
+                      )}
                       <button
-                        className="btn btn-secondary btn-sm text-[11px] px-2.5 py-1 font-medium hover:border-[var(--accent-primary)] hover:text-[var(--text-pure)] transition-all shrink-0 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRequestCollab(project);
+                        type="button"
+                        className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onSelectProject(project);
                         }}
                       >
-                        Collaborate
+                        <span>View</span>
+                        <ArrowUpRight size={13} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
