@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { App } from "@/App";
 import { CollaborationRequest, Project, StudentProfile } from "@/types";
@@ -9,6 +10,13 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect("/sign-in");
+
+  const activeUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  });
+  if (!activeUser) redirect("/sign-in");
+
   const decodeList = (value?: string | null) => {
     try {
       return value ? JSON.parse(value) : [];
@@ -19,12 +27,7 @@ export default async function DashboardPage() {
 
   const db = prisma as any;
 
-  // DIRECT ACCESS: If no session, automatically use the database dev user
-  const activeUser = session?.user
-    ? await prisma.user.findUnique({ where: { id: session.user.id } })
-    : (await prisma.user.findFirst({ where: { email: { contains: "aarav" } } })) || (await prisma.user.findFirst());
-
-  let profile: StudentProfile;
+  let profile: StudentProfile | null = null;
   let collaborationRequests: CollaborationRequest[] = [];
   let notifications: any[] = [];
 
@@ -36,6 +39,14 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
+    const githubAccount = await prisma.account.findFirst({
+      where: { userId: dbUser.id, providerId: "github" },
+      select: { accountId: true, accessToken: true },
+    });
+    const githubUsername =
+      githubAccount && !githubAccount.accessToken && !/^\d+$/.test(githubAccount.accountId)
+        ? githubAccount.accountId
+        : undefined;
 
     const mappedContributions = (rawContributions as any[]).map((c: any) => ({
       id: c.id,
@@ -43,6 +54,8 @@ export default async function DashboardPage() {
       title: c.title,
       repo: c.repo,
       verifiedByGitHub: Boolean(c.verifiedByGitHub),
+      source: c.source,
+      createdAt: new Date(c.createdAt).toISOString(),
       externalUrl: c.externalUrl ?? undefined,
       sha: c.sha ?? undefined,
       details: c.details ?? undefined,
@@ -54,10 +67,10 @@ export default async function DashboardPage() {
       name: dbUser.name,
       username: dbUser.email.split("@")[0],
       email: dbUser.email,
-      collegeVerified: dbUser.verificationStatus === "VERIFIED" || Boolean(dbUser.emailVerified),
+      collegeVerified: dbUser.verificationStatus === "VERIFIED",
       collegeOrgId: dbUser.branchYear ?? "",
-      githubConnected: true,
-      githubUsername: dbUser.email.split("@")[0],
+      githubConnected: Boolean(githubAccount),
+      githubUsername,
       avatarUrl: dbUser.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(dbUser.name)}&background=222&color=fff`,
       bio: dbUser.bio ?? "",
       skills: decodeList(dbUser.skills),
@@ -132,33 +145,9 @@ export default async function DashboardPage() {
       readAt: n.readAt ? (n.readAt instanceof Date ? n.readAt.toISOString() : n.readAt) : null,
       createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt,
     }));
-  } else {
-    // Fallback developer profile if no users in database
-    profile = {
-      id: "dev-student-1",
-      name: "Aarav Sharma",
-      username: "aarav",
-      email: "aarav.sharma@isquareit.edu.in",
-      collegeVerified: true,
-      collegeOrgId: "Computer Engineering · 2026",
-      githubConnected: true,
-      githubUsername: "aarav-sharma",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      bio: "Junior CS student building open-source tools for campus engineering.",
-      skills: ["TypeScript", "React", "Next.js", "Docker"],
-      interests: ["Open Source", "Distributed Systems"],
-      weeklyAvailabilityHours: 8,
-      joinedDate: "October 2026",
-      verifiedContributions: [],
-      role: "student",
-      verificationStatus: "VERIFIED",
-      prnNumber: "72234012A",
-      rollNumber: "33104",
-      department: "Computer Engineering",
-      academicYear: "Third Year (TE)",
-      isGuest: false,
-    };
   }
+
+  if (!profile) redirect("/sign-in");
 
   // Fetch all active campus projects
   const rawProjects = await db.project.findMany({

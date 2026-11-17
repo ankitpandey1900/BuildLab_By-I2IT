@@ -201,43 +201,66 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     p => p.owner.id === user.id || p.members?.some(m => m.userId === user.id)
   );
 
-  // Generate 20-week contribution heatmap matrix (20 weeks x 7 days)
-  const heatmapWeeks = React.useMemo(() => {
-    const weeks: { date: string; count: number; level: number }[][] = [];
+  const activity = React.useMemo(() => {
+    const dateKey = (date: Date) =>
+      `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(
+        date.getUTCDate()
+      ).padStart(2, '0')}`;
     const today = new Date();
-    
-    // Seeded pseudo-random generator for consistent heatmap appearance
-    const getContributionCount = (dayIndex: number) => {
-      const seed = Math.sin(dayIndex * 997 + 42) * 10000;
-      const rand = seed - Math.floor(seed);
-      if (rand < 0.35) return 0;
-      if (rand < 0.65) return 1;
-      if (rand < 0.85) return 2;
-      if (rand < 0.95) return 4;
-      return 6;
-    };
+    today.setUTCHours(0, 0, 0, 0);
+    const activityByDay = new Map<string, number>();
 
-    for (let w = 19; w >= 0; w--) {
+    for (const contribution of user.verifiedContributions) {
+      const date = new Date(contribution.createdAt ?? contribution.date);
+      if (Number.isNaN(date.getTime())) continue;
+      date.setUTCHours(0, 0, 0, 0);
+      if (date > today) continue;
+      const key = dateKey(date);
+      activityByDay.set(key, (activityByDay.get(key) ?? 0) + 1);
+    }
+
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
+    const firstWeekStart = new Date(currentWeekStart);
+    firstWeekStart.setUTCDate(currentWeekStart.getUTCDate() - 19 * 7);
+    const weeks: { date: string; count: number; level: number }[][] = [];
+    let contributionCount = 0;
+
+    for (let weekIndex = 0; weekIndex < 20; weekIndex++) {
       const weekDays: { date: string; count: number; level: number }[] = [];
-      for (let d = 0; d < 7; d++) {
-        const dayOffset = w * 7 + (6 - d);
-        const dayDate = new Date(today);
-        dayDate.setDate(today.getDate() - dayOffset);
-        
-        const count = getContributionCount(dayOffset);
-        let level = 0;
-        if (count === 1) level = 1;
-        else if (count === 2) level = 2;
-        else if (count >= 3 && count <= 4) level = 3;
-        else if (count > 4) level = 4;
-
-        const dateStr = dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        weekDays.push({ date: dateStr, count, level });
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const dayDate = new Date(firstWeekStart);
+        dayDate.setUTCDate(firstWeekStart.getUTCDate() + weekIndex * 7 + dayIndex);
+        const count = dayDate <= today ? activityByDay.get(dateKey(dayDate)) ?? 0 : 0;
+        contributionCount += count;
+        const level =
+          count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : count <= 4 ? 3 : 4;
+        weekDays.push({
+          date: dayDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'UTC',
+          }),
+          count,
+          level,
+        });
       }
       weeks.push(weekDays);
     }
-    return weeks;
-  }, []);
+
+    let streakEnd = new Date(today);
+    if (!activityByDay.has(dateKey(streakEnd))) {
+      streakEnd.setUTCDate(streakEnd.getUTCDate() - 1);
+    }
+    let streak = 0;
+    while (activityByDay.has(dateKey(streakEnd))) {
+      streak += 1;
+      streakEnd.setUTCDate(streakEnd.getUTCDate() - 1);
+    }
+
+    return { weeks, contributionCount, streak };
+  }, [user.verifiedContributions]);
+  const heatmapWeeks = activity.weeks;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -271,7 +294,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="p-5 sm:p-7 pt-0 relative">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-14 mb-4">
             {/* Avatar & Basic Info */}
-            <div className="flex items-end gap-4 sm:gap-5">
+            <div className="flex min-w-0 items-end gap-4 sm:gap-5">
               <div className="relative shrink-0">
                 <img 
                   src={user.avatarUrl} 
@@ -286,28 +309,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div className="space-y-1 mb-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-pure)]">
+                  <h1 className="min-w-0 break-words text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-pure)]">
                     {user.name}
                   </h1>
                   {user.verificationStatus === 'VERIFIED' || user.collegeVerified ? (
-                    <span className="badge-tag curated flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span className="badge-tag curated flex max-w-full flex-wrap items-center gap-1 !whitespace-normal text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       <ShieldCheck size={12} className="text-emerald-400" />
-                      <span>Campus Verified (PRN: {user.prnNumber || 'Confirmed'})</span>
+                      <span className="min-w-0 break-words">
+                        Campus Verified (PRN: {user.prnNumber || 'Confirmed'})
+                      </span>
                     </span>
                   ) : user.verificationStatus === 'PENDING_APPROVAL' ? (
                     <button 
                       type="button"
                       onClick={onOpenVerificationModal} 
-                      className="badge-tag flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/20 cursor-pointer"
+                      className="badge-tag flex max-w-full flex-wrap items-center gap-1 !whitespace-normal text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/20 cursor-pointer"
                     >
                       <Clock size={12} className="text-amber-400" />
-                      <span>PRN Review Pending ({user.prnNumber || 'Submitted'})</span>
+                      <span className="min-w-0 break-words">
+                        PRN Review Pending ({user.prnNumber || 'Submitted'})
+                      </span>
                     </button>
                   ) : (
                     <button 
                       type="button"
                       onClick={onOpenVerificationModal} 
-                      className="badge-tag flex items-center gap-1 text-[11px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 cursor-pointer hover:bg-indigo-500/20"
+                      className="badge-tag flex max-w-full flex-wrap items-center gap-1 !whitespace-normal text-[11px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 cursor-pointer hover:bg-indigo-500/20"
                     >
                       <ShieldCheck size={12} className="text-indigo-400" />
                       <span>Verify Campus PRN</span>
@@ -318,7 +345,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2 flex-wrap">
                   <span className="text-[var(--text-primary)] font-medium font-mono">@{user.username}</span>
                   <span>•</span>
-                  <span>{user.department || "Computer Engineering"} ({user.academicYear || "2026"})</span>
+                  <span>
+                    {[user.department, user.academicYear].filter(Boolean).join(" · ") ||
+                      "Department not set"}
+                  </span>
                   {user.rollNumber && (
                     <>
                       <span>•</span>
@@ -372,9 +402,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="inline-flex items-center gap-1.5">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-[11px] font-mono">
                     <GitPullRequest size={12} className="text-[var(--accent-primary)]" />
-                    <span>github.com/{user.githubUsername}</span>
+                    <span>
+                      {user.githubUsername
+                        ? `github.com/${user.githubUsername}`
+                        : "GitHub account connected"}
+                    </span>
                     <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-400 font-medium">
-                      Verified
+                      Connected
                     </span>
                   </span>
                   <button
@@ -409,37 +443,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div>
             <h2 className="text-sm font-bold text-[var(--text-pure)] flex items-center gap-2">
               <Calendar size={15} className="text-[var(--accent-primary)]" />
-              <span>Campus & GitHub Contribution Activity</span>
+              <span>Contribution Activity</span>
             </h2>
             <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-              Verified cryptographic webhook commits and merged pull requests across campus repositories.
+              GitHub-verified events and clearly labeled sample activity from the database.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-mono text-[var(--text-secondary)]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-[var(--text-secondary)]">
             <span className="flex items-center gap-1 text-[var(--accent-primary)] font-semibold">
               <Flame size={13} className="text-amber-500 fill-amber-500" />
-              <span>14-day streak</span>
+              <span>{activity.streak}-day streak</span>
             </span>
-            <span>•</span>
-            <span>184 contributions (past 6 mo)</span>
+            <span className="hidden sm:inline">•</span>
+            <span>{activity.contributionCount.toLocaleString('en-IN')} contributions (past 20 weeks)</span>
           </div>
         </div>
 
         {/* The 20-week Grid */}
-        <div className="overflow-x-auto pb-2 no-scrollbar">
-          <div className="inline-flex flex-col gap-1.5 min-w-[620px]">
+        <div className="w-full pb-2">
+          <div className="flex w-fit max-w-full flex-col gap-1.5">
             {/* Days of week rows (Mon, Wed, Fri labels) */}
-            <div className="flex gap-1.5 items-center">
-              <div className="w-6 text-[9.5px] font-mono text-[var(--text-tertiary)] flex flex-col justify-between h-[84px] py-0.5">
+            <div className="flex items-center gap-1">
+              <div className="flex h-[68px] w-6 shrink-0 flex-col justify-between py-0.5 text-[9.5px] font-mono text-[var(--text-tertiary)] sm:h-[84px]">
                 <span>Mon</span>
                 <span>Wed</span>
                 <span>Fri</span>
               </div>
 
-              <div className="flex gap-1.5">
+              <div className="flex gap-0.5 sm:gap-1.5">
                 {heatmapWeeks.map((week, wIdx) => (
-                  <div key={wIdx} className="flex flex-col gap-1.5">
+                  <div key={wIdx} className="flex flex-col gap-0.5 sm:gap-1.5">
                     {week.map((day, dIdx) => {
                       const colorClass = 
                         day.level === 4 ? 'bg-emerald-400 border-emerald-300' :
@@ -452,7 +486,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         <div
                           key={dIdx}
                           title={`${day.count} contributions on ${day.date}`}
-                          className={`w-3 h-3 rounded-xs border transition-transform hover:scale-125 hover:z-10 cursor-pointer ${colorClass}`}
+                          className={`h-2 w-2 rounded-xs border transition-transform hover:scale-125 hover:z-10 cursor-pointer sm:h-3 sm:w-3 ${colorClass}`}
                         />
                       );
                     })}
@@ -488,7 +522,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {user.verifiedContributions.filter(c => c.type === 'pr_merged').length}
           </div>
           <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 font-medium">
-            Verified Merged PRs
+            Merged PRs
           </div>
         </CardSpotlight>
 
@@ -500,7 +534,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {user.verifiedContributions.filter(c => c.type === 'commit_pushed').length}
           </div>
           <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 font-medium">
-            Verified Commits
+            Commits
           </div>
         </CardSpotlight>
 
@@ -530,20 +564,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       </div>
 
       {/* 4. Profile Section Tabs */}
-      <div className="border-b border-[var(--border-subtle)] flex items-center gap-6 text-xs font-medium">
+      <div className="border-b border-[var(--border-subtle)] flex items-center gap-6 overflow-x-auto no-scrollbar text-xs font-medium">
         <button
-          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
+          className={`min-h-11 shrink-0 whitespace-nowrap px-1 pb-3 border-b-2 transition-colors cursor-pointer ${
             activeTab === 'contributions' 
               ? 'border-[var(--accent-primary)] text-[var(--text-pure)] font-semibold' 
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
           onClick={() => setActiveTab('contributions')}
         >
-          Verified Contribution Receipts ({user.verifiedContributions.length})
+          Contribution Activity ({user.verifiedContributions.length})
         </button>
 
         <button
-          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
+          className={`min-h-11 shrink-0 whitespace-nowrap px-1 pb-3 border-b-2 transition-colors cursor-pointer ${
             activeTab === 'projects' 
               ? 'border-[var(--accent-primary)] text-[var(--text-pure)] font-semibold' 
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -554,7 +588,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </button>
 
         <button
-          className={`pb-3 border-b-2 transition-colors cursor-pointer ${
+          className={`min-h-11 shrink-0 whitespace-nowrap px-1 pb-3 border-b-2 transition-colors cursor-pointer ${
             activeTab === 'skills' 
               ? 'border-[var(--accent-primary)] text-[var(--text-pure)] font-semibold' 
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -595,10 +629,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <GitCommit size={20} />
               </div>
               <h3 className="text-sm font-semibold text-[var(--text-pure)]">
-                No verified contribution receipts yet
+                No contribution activity yet
               </h3>
               <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto leading-relaxed">
-                Connect your GitHub handle above, then push commits or merge pull requests to any campus repository. Verified GitHub webhook deliveries will automatically record cryptographically signed receipts here.
+                Connect your GitHub handle above to record verified commits and pull requests. Seeded sample activity is labeled separately.
               </p>
               {!user.githubConnected && (
                 <button
@@ -650,10 +684,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           </button>
                         )}
                         <span>• {rec.date}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent-primary-subtle)] text-[var(--accent-primary)] font-sans font-medium flex items-center gap-1">
-                          <Check size={10} />
-                          <span>Webhook Verified</span>
-                        </span>
+                        {rec.verifiedByGitHub ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent-primary-subtle)] text-[var(--accent-primary)] font-sans font-medium flex items-center gap-1">
+                            <Check size={10} />
+                            <span>Webhook Verified</span>
+                          </span>
+                        ) : rec.source === 'seed_demo' ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 font-sans font-medium">
+                            Seed demo
+                          </span>
+                        ) : null}
                       </div>
 
                       {rec.details && (
@@ -900,8 +940,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <option value="Information Technology · 2026" />
                     <option value="Computer Engineering · 2025" />
                     <option value="Electronics & Telecommunication · 2026" />
-                    <option value="Artificial Intelligence & DS · 2027" />
-                    <option value="Mechanical Engineering · 2026" />
                   </datalist>
                 </div>
               </div>

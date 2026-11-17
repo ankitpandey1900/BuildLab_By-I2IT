@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    const currentUserId = session?.user?.id || (await prisma.user.findFirst({ where: { email: { contains: "aarav" } } }))?.id || (await prisma.user.findFirst())?.id;
+    const currentUserId = session?.user?.id;
     if (!currentUserId) {
       return NextResponse.json({ message: "Authentication required." }, { status: 401 });
     }

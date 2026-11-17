@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   FolderGit2,
   ArrowRight,
@@ -20,9 +20,9 @@ import {
   GraduationCap,
   Copy,
   Check,
+  CircleDot,
   GitPullRequest,
   GitMerge,
-  Flame,
   HelpCircle,
   ChevronDown,
   Lock,
@@ -45,30 +45,6 @@ const GitHubLogo: React.FC<{ className?: string }> = ({ className = "w-4 h-4" })
   <Icon icon="simple-icons:github" className={className} />
 );
 
-const ambientCodeSnippets = [
-  'import { ESP32, MQTTClient } from "@i2it/embedded-nodes";',
-  'const telemetry = new ESP32({ baudRate: 115200 });',
-  'await telemetry.connectWiFi("I2IT-Campus-5G");',
-  'export async function syncCommitDiff(sha: string) {',
-  '  const commit = await github.getCommit({ sha });',
-  '  const isValid = crypto.verify(commit.signature);',
-  '  if (!isValid) throw new Error("Invalid signature");',
-  '  return db.verifiedContribution.create({ data });',
-  '}',
-  '// Campus Shuttle GPS Loop Frequency: 50Hz',
-  'mqtt.on("message", (topic, packet) => {',
-  '  const gps = parseNMEAPacket(packet);',
-  '  broadcastLocation({ lat: gps.lat, lng: gps.lng });',
-  '});',
-  'const [maintainers, openTasks] = await Promise.all([',
-  '  prisma.projectMember.findMany({ where: { role: "maintainer" } }),',
-  '  prisma.projectTask.findMany({ where: { status: "open" } })',
-  ']);',
-  'git checkout -b feat/cellular-fallback-sim800l',
-  'git commit -S -m "feat(telemetry): signed pgp receipt"',
-  'git push origin feat/cellular-fallback-sim800l'
-];
-
 interface StudentPerspective {
   id: string;
   name: string;
@@ -76,7 +52,6 @@ interface StudentPerspective {
   year: string;
   github: string;
   avatarInitials: string;
-  avatarGradient: string;
   proofBadge: string;
   proofType: 'merge' | 'commit' | 'review';
   projectName: string;
@@ -92,7 +67,6 @@ const row1Perspectives: StudentPerspective[] = [
     year: "2026",
     github: "@aarav-sharma",
     avatarInitials: "AS",
-    avatarGradient: "from-blue-500/25 to-cyan-500/25 text-blue-400 border-blue-500/30",
     proofBadge: "PR #14 Merged",
     proofType: "merge",
     projectName: "campus-ride-telemetry",
@@ -106,7 +80,6 @@ const row1Perspectives: StudentPerspective[] = [
     year: "2027",
     github: "@ananya-k",
     avatarInitials: "AK",
-    avatarGradient: "from-purple-500/25 to-pink-500/25 text-purple-400 border-purple-500/30",
     proofBadge: "PR #08 Merged",
     proofType: "merge",
     projectName: "hostel-laundry-tracker",
@@ -120,7 +93,6 @@ const row1Perspectives: StudentPerspective[] = [
     year: "2025",
     github: "@rohan-deshmukh",
     avatarInitials: "RD",
-    avatarGradient: "from-emerald-500/25 to-teal-500/25 text-emerald-400 border-emerald-500/30",
     proofBadge: "28 Commits Verified",
     proofType: "commit",
     projectName: "smart-energy-monitor",
@@ -134,7 +106,6 @@ const row1Perspectives: StudentPerspective[] = [
     year: "2026",
     github: "@sneha-patil-ai",
     avatarInitials: "SP",
-    avatarGradient: "from-amber-500/25 to-orange-500/25 text-amber-400 border-amber-500/30",
     proofBadge: "PR #31 Merged",
     proofType: "merge",
     projectName: "syllabus-semantic-search",
@@ -151,7 +122,6 @@ const row2Perspectives: StudentPerspective[] = [
     year: "2025",
     github: "@tanmay-j",
     avatarInitials: "TJ",
-    avatarGradient: "from-indigo-500/25 to-blue-500/25 text-indigo-400 border-indigo-500/30",
     proofBadge: "36 Reviews Logged",
     proofType: "review",
     projectName: "campus-auth-gateway",
@@ -165,7 +135,6 @@ const row2Perspectives: StudentPerspective[] = [
     year: "2027",
     github: "@isha-ui",
     avatarInitials: "ID",
-    avatarGradient: "from-rose-500/25 to-pink-500/25 text-rose-400 border-rose-500/30",
     proofBadge: "PR #19 Merged",
     proofType: "merge",
     projectName: "alumni-connect-portal",
@@ -179,7 +148,6 @@ const row2Perspectives: StudentPerspective[] = [
     year: "2026",
     github: "@kunal-lora",
     avatarInitials: "KV",
-    avatarGradient: "from-cyan-500/25 to-emerald-500/25 text-cyan-400 border-cyan-500/30",
     proofBadge: "PR #06 Merged",
     proofType: "merge",
     projectName: "weather-station-lora",
@@ -193,7 +161,6 @@ const row2Perspectives: StudentPerspective[] = [
     year: "2026",
     github: "@meera-iyer",
     avatarInitials: "MI",
-    avatarGradient: "from-violet-500/25 to-indigo-500/25 text-violet-400 border-violet-500/30",
     proofBadge: "PR #22 Merged",
     proofType: "merge",
     projectName: "exam-schedule-sync",
@@ -221,6 +188,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [copiedWorkflowSha, setCopiedWorkflowSha] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     // Ensure refreshing the landing page always starts cleanly at the top
@@ -303,7 +271,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <motion.div
-            whileHover={{ scale: 1.01 }}
+            whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
             className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-surface)] transition-all"
           >
             <div className="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center font-bold text-xs font-mono shrink-0">
@@ -380,10 +348,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </span>
             <motion.button
               type="button"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={prefersReducedMotion ? undefined : { scale: 1.03 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
               onClick={() => setClaimedWorkflowTask(prev => !prev)}
-              className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1.5 ${claimedWorkflowTask
+              aria-pressed={claimedWorkflowTask}
+              aria-label={claimedWorkflowTask ? "Release claimed starter issue" : "Claim starter issue"}
+              className={`min-h-11 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] ${claimedWorkflowTask
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   : "bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] border border-[var(--border-default)]"
                 }`}
@@ -398,7 +368,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     className="flex items-center gap-1 text-emerald-400 font-mono text-[10.5px]"
                   >
                     <Check size={11} />
-                    <span>Claimed ✓</span>
+                    <span>Claimed</span>
                   </motion.span>
                 ) : (
                   <motion.span
@@ -454,14 +424,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <span className="text-[var(--text-primary)] font-mono">99b2c3d4e5f6</span>
                 <motion.button
                   type="button"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                   onClick={() => {
                     navigator.clipboard?.writeText("99b2c3d4e5f60718");
                     setCopiedWorkflowSha(true);
                     setTimeout(() => setCopiedWorkflowSha(false), 2000);
                   }}
-                  className="p-1 rounded hover:bg-[var(--bg-surface-elevated)] text-[var(--text-tertiary)] hover:text-[var(--text-pure)] transition-colors cursor-pointer"
+                  aria-label={copiedWorkflowSha ? "Commit SHA copied" : "Copy commit SHA"}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md hover:bg-[var(--bg-surface-elevated)] text-[var(--text-tertiary)] hover:text-[var(--text-pure)] transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
                   title="Copy Commit SHA"
                 >
                   {copiedWorkflowSha ? (
@@ -492,9 +463,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 SHA Copied!
               </motion.span>
             ) : (
-              <span className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1 font-sans">
+              <span className="text-[var(--text-tertiary)] flex items-center gap-1 font-sans">
                 <span>Proof</span>
-                <ExternalLink size={10} />
+                <ExternalLink size={10} aria-hidden="true" />
               </span>
             )}
           </div>
@@ -523,17 +494,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-blue-500/25 selection:text-[var(--accent-primary)]">
+    <div className="min-h-screen [--accent-primary:#286b46] dark:[--accent-primary:#78c995] bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-emerald-500/20 selection:text-[var(--accent-primary)]">
 
       <LandingHeader isAuthenticated={isAuthenticated} userEmail={userEmail} />
 
       {/* Main Hero Section with Ambient Developer Workspace & Git Trust Layer */}
-      <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[var(--border-subtle)]">
-        {/* Dual Spotlight Beams from top-left and top-right */}
-        <Spotlight className="-top-40 left-0 md:left-32 md:-top-20" fill="white" side="left" />
-        <Spotlight className="-top-40 right-0 md:right-32 md:-top-20" fill="white" side="right" />
+      <section className="relative overflow-hidden pt-10 pb-12 sm:pt-14 sm:pb-16 border-b border-[var(--border-subtle)]">
+        <Spotlight className="-top-40 left-0 md:left-32 md:-top-20" fill="var(--accent-primary)" side="left" />
+        <Spotlight className="-top-40 right-0 md:right-32 md:-top-20" fill="var(--accent-primary)" side="right" />
 
-        {/* Ambient Dot Grid with Radial Vignette */}
         <div
           className="absolute inset-0 pointer-events-none bg-dot-[var(--dot-color)] opacity-40 -z-10"
           style={{
@@ -542,76 +511,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}
         />
 
-        {/* Subtle Radial Ambient Neutral Glow */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 pointer-events-none opacity-20 blur-3xl -z-10 bg-gradient-to-b from-white/10 to-transparent"
-        />
-
-        {/* Developer Coding Ambient Stream in Background */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-[0.04] dark:opacity-[0.09] flex justify-around text-xs font-mono -z-10"
-          style={{
-            maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, transparent 80%)",
-            WebkitMaskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, transparent 80%)"
-          }}
-        >
-          {/* Column 1 of floating code */}
-          <motion.div
-            animate={{ y: [0, -40, 0] }}
-            transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
-            className="space-y-2 py-4"
-          >
-            {ambientCodeSnippets.slice(0, 10).map((line, idx) => (
-              <div key={idx} className="whitespace-nowrap">
-                <span className="text-[var(--text-tertiary)] mr-3 select-none">{(idx + 1).toString().padStart(2, '0')}</span>
-                <span className={idx % 3 === 0 ? "text-sky-400" : idx % 2 === 0 ? "text-emerald-400" : "text-[var(--text-primary)]"}>
-                  {line}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Column 2 of floating code */}
-          <motion.div
-            animate={{ y: [-30, 10, -30] }}
-            transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
-            className="space-y-2 py-4 hidden md:block"
-          >
-            {ambientCodeSnippets.slice(5, 17).map((line, idx) => (
-              <div key={idx} className="whitespace-nowrap">
-                <span className="text-[var(--text-tertiary)] mr-3 select-none">{(idx + 11).toString().padStart(2, '0')}</span>
-                <span className={idx % 2 === 0 ? "text-amber-400" : "text-violet-400"}>
-                  {line}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Column 3 of floating code */}
-          <motion.div
-            animate={{ y: [10, -30, 10] }}
-            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-            className="space-y-2 py-4 hidden lg:block"
-          >
-            {ambientCodeSnippets.slice(2, 14).map((line, idx) => (
-              <div key={idx} className="whitespace-nowrap">
-                <span className="text-[var(--text-tertiary)] mr-3 select-none">{(idx + 21).toString().padStart(2, '0')}</span>
-                <span className={idx % 3 === 0 ? "text-cyan-400" : "text-emerald-300"}>
-                  {line}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           {/* Hero Header Area with Framer Motion Stagger */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="text-center space-y-5 max-w-3xl mx-auto"
+            className="text-center space-y-5 max-w-4xl mx-auto"
           >
             {/* Status Pill with Official Git & GitHub Logos */}
             <motion.div
@@ -635,15 +541,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </motion.div>
 
             {/* Main Headline - High-Hook Community Angle with Clean Monochrome Typography */}
-            <h1 className="text-3xl sm:text-5xl md:text-[3.5rem] font-bold tracking-tight text-[var(--text-pure)] leading-[1.14]">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[var(--text-pure)] leading-[1.1]">
               Stop building clones alone.
-              <span className="block mt-1.5 sm:mt-2.5 text-transparent bg-clip-text bg-gradient-to-b from-[var(--text-pure)] via-[var(--text-pure)]/90 to-[var(--text-secondary)]">
+              <span className="block mt-1.5 sm:mt-2.5 text-[var(--text-secondary)]">
                 Ship real open source with campus peers.
               </span>
             </h1>
 
             {/* Reassuring, action-driven community subtitle */}
-            <p className="text-xs sm:text-[15px] text-[var(--text-secondary)] leading-relaxed max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-3xl mx-auto">
               Escape tutorial hell. Team up across branches, claim beginner-friendly starter issues with 1-on-1 senior maintainer guidance, and turn your first merged pull request into verified proof recruiters actually respect.
             </p>
 
@@ -653,7 +559,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 href="#projects"
-                className="px-5 py-2.5 rounded-xl bg-[var(--text-pure)] text-[var(--text-inverse)] text-xs sm:text-sm font-semibold inline-flex items-center gap-2 shadow-sm hover:opacity-95 transition-opacity cursor-pointer"
+                className="min-h-11 px-6 py-3 rounded-xl bg-[var(--text-pure)] text-[var(--text-inverse)] text-sm font-semibold inline-flex items-center gap-2 shadow-sm hover:opacity-95 transition-opacity cursor-pointer"
               >
                 <Terminal size={14} />
                 <span>Explore Campus Projects ({initialProjects.length})</span>
@@ -662,7 +568,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Link
                   href={isAuthenticated ? "/dashboard" : "/sign-up"}
-                  className="px-5 py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-all cursor-pointer"
+                  className="min-h-11 px-6 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:text-[var(--text-pure)] text-sm font-medium inline-flex items-center gap-2 transition-all cursor-pointer"
                 >
                   <GitHubLogo className="w-3.5 h-3.5 shrink-0" />
                   <span>{isAuthenticated ? "Open Workspace" : "Join Community"}</span>
@@ -671,80 +577,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </motion.div>
             </div>
 
-            {/* Live Community Developer Faces & Activity Strip */}
-            <div className="pt-2 flex justify-center">
-              <motion.div
-                whileHover={{ y: -1 }}
-                style={{ backgroundColor: "var(--bg-surface)" }}
-                className="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-default)] shadow-[0_8px_25px_rgba(0,0,0,0.18)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-elevated)] transition-all cursor-default flex-wrap sm:flex-nowrap justify-center"
-              >
-                {/* Overlapping Avatar Stack with Micro-Zoom */}
-                <div className="flex items-center -space-x-2 shrink-0">
-                  <div
-                    className="relative z-50 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white border border-sky-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                    title="Aarav Sharma · CE '26 (14 contributions)"
-                  >
-                    AS
-                  </div>
-
-                  <div
-                    className="relative z-40 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-pink-600 text-white border border-purple-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                    title="Ananya Kulkarni · IT '27 (9 contributions)"
-                  >
-                    AK
-                  </div>
-
-                  <div
-                    className="relative z-30 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white border border-emerald-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                    title="Rohan Deshmukh · E&TC '25 (22 contributions)"
-                  >
-                    RD
-                  </div>
-
-                  <div
-                    className="relative z-20 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 text-white border border-amber-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                    title="Sneha Patil · CE '26 (11 contributions)"
-                  >
-                    SP
-                  </div>
-
-                  <div
-                    className="relative z-10 hover:!z-[100] w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-600 text-white border border-indigo-300/40 ring-2 ring-[var(--bg-surface)] font-bold text-[10px] font-mono flex items-center justify-center hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                    title="Tanmay Joshi · IT '25 (17 contributions)"
-                  >
-                    TJ
-                  </div>
-                </div>
-
-                {/* Metrics label with vertical divider */}
-                <div className="flex items-center gap-2.5 text-xs text-[var(--text-secondary)] font-medium">
-                  <span className="text-[var(--text-pure)] font-bold tracking-tight">
-                    140+ campus engineers
-                  </span>
-
-                  <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)] opacity-60 hidden sm:inline" />
-
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[11px] font-medium shadow-2xs">
-                    <Flame size={12} className="text-amber-400 fill-amber-400 animate-pulse shrink-0" />
-                    <span>24 PRs merged this week</span>
-                  </span>
-                </div>
-              </motion.div>
-            </div>
-
             {/* Quick Git Clone Snippet */}
             <div className="pt-1 flex justify-center">
               <motion.div
                 whileHover={{ borderColor: "var(--border-hover)" }}
-                className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[11.5px] font-mono text-[var(--text-secondary)] shadow-2xs"
+                className="inline-flex min-h-11 items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs sm:text-[13px] font-mono text-[var(--text-secondary)] shadow-2xs"
               >
                 <GitLogo className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate max-w-[190px] sm:max-w-none">git clone https://github.com/college-dev/i2it-community</span>
                 <button
                   type="button"
                   onClick={copyCloneCmd}
-                  className="text-[var(--text-tertiary)] hover:text-[var(--text-pure)] transition-colors ml-1 cursor-pointer"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-pure)] hover:bg-[var(--bg-surface-elevated)] transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
                   title="Copy command"
+                  aria-label={copiedCmd ? "Command copied" : "Copy clone command"}
                 >
                   {copiedCmd ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                 </button>
@@ -757,10 +603,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
-            className="mt-12 sm:mt-16 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-xl overflow-hidden"
+            className="mt-10 sm:mt-12 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-xl overflow-hidden"
           >
             {/* Terminal Window Header Bar */}
-            <div className="px-4 py-3 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between gap-4">
+            <div className="px-4 sm:px-6 py-3.5 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
@@ -773,11 +619,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               {/* Tab Selector */}
-              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-mono">
+              <div role="group" aria-label="Campus contribution preview" className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-mono">
                 <button
                   type="button"
+                  aria-pressed={activeHeroTab === 'cli'}
                   onClick={() => setActiveHeroTab('cli')}
-                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${activeHeroTab === 'cli'
+                  className={`min-h-10 px-3 sm:px-4 rounded-md text-[11px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] ${activeHeroTab === 'cli'
                       ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs'
                       : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -786,8 +633,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </button>
                 <button
                   type="button"
+                  aria-pressed={activeHeroTab === 'receipt'}
                   onClick={() => setActiveHeroTab('receipt')}
-                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${activeHeroTab === 'receipt'
+                  className={`min-h-10 px-3 sm:px-4 rounded-md text-[11px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] ${activeHeroTab === 'receipt'
                       ? 'bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] shadow-2xs'
                       : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -798,7 +646,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             {/* Terminal Body Content */}
-            <div className="p-5 sm:p-6 font-mono text-xs leading-relaxed overflow-x-auto bg-[var(--code-bg, #0b0f19)] min-h-[210px]">
+            <div className="p-5 sm:p-8 font-mono text-[13px] sm:text-sm leading-7 overflow-x-auto bg-[var(--code-bg,#0b0f19)] min-h-[250px]">
               <AnimatePresence mode="wait">
                 {activeHeroTab === 'cli' ? (
                   <motion.div
@@ -819,19 +667,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         [Found 5 Active Campus Repositories]
                       </p>
                       <p>
-                        <span className="text-blue-400 font-medium">1. campus-ride-telemetry</span>
+                        <span className="text-emerald-300 font-medium">1. campus-ride-telemetry</span>
                         <span className="text-[var(--text-tertiary)]"> · Maintainer: @rohan.deshmukh · </span>
                         <span className="text-emerald-400">2 roles open (IoT Lead, Frontend)</span>
                       </p>
                       <p>
-                        <span className="text-blue-400 font-medium">2. lab-scheduler-iot</span>
+                        <span className="text-emerald-300 font-medium">2. lab-scheduler-iot</span>
                         <span className="text-[var(--text-tertiary)]"> · Maintainer: @aarav.sharma · </span>
                         <span className="text-amber-400">1 beginner issue claimable</span>
                       </p>
                       <p>
-                        <span className="text-blue-400 font-medium">3. campus-attendance-ocr</span>
+                        <span className="text-emerald-300 font-medium">3. campus-attendance-ocr</span>
                         <span className="text-[var(--text-tertiary)]"> · Maintainer: @priya.patel · </span>
-                        <span className="text-purple-400">FastAPI backend contributor seeking</span>
+                        <span className="text-emerald-300">FastAPI backend contributor seeking</span>
                       </p>
                     </div>
 
@@ -843,7 +691,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div className="pl-4 space-y-1 text-emerald-400">
                       <p>✓ Issue Claimed: &quot;Fix CSRF header mismatch on student reservation API&quot;</p>
                       <p className="text-[var(--text-secondary)]">
-                        → Branch created: <span className="text-blue-400">feat/csrf-header-fix</span>
+                        → Branch created: <span className="text-emerald-300">feat/csrf-header-fix</span>
                       </p>
                       <p className="text-[var(--text-secondary)]">
                         → Peer review assigned to Maintainer <span className="text-[var(--text-pure)]">@aarav.sharma</span>
@@ -883,28 +731,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
 
           {/* Social Proof Stats Strip - Enhanced Engineering Telemetry */}
-          <div className="mt-14 pt-8 border-t border-[var(--border-subtle)]">
+          <div className="mt-12 sm:mt-14 pt-7 sm:pt-8 border-t border-[var(--border-subtle)]">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-xs font-mono text-[var(--text-tertiary)]">
+              <div className="flex items-center gap-2 text-xs sm:text-[13px] font-mono text-[var(--text-tertiary)]">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="uppercase tracking-wider font-semibold text-[11px] text-[var(--text-secondary)]">Live Campus Network Telemetry</span>
               </div>
-              <span className="text-[11px] font-mono text-[var(--text-tertiary)] hidden sm:inline">
+              <span className="text-xs font-mono text-[var(--text-tertiary)] hidden sm:inline">
                 Synced with GitHub Webhooks
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Active Repositories */}
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-5 sm:p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
-                    <FolderGit2 size={16} />
-                  </div>
+                  <FolderGit2 size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--accent-primary)]" />
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-medium flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     Production
@@ -912,18 +758,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
 
                 <div className="mt-3.5">
-                  <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[var(--text-pure)] tracking-tight">
+                  <div className="text-3xl sm:text-4xl font-extrabold font-mono text-[var(--text-pure)] tracking-tight">
                     {initialProjects.length > 0 ? initialProjects.length : 5}
                   </div>
-                  <div className="text-xs font-semibold text-[var(--text-pure)] mt-0.5">
+                  <div className="text-sm font-semibold text-[var(--text-pure)] mt-1">
                     Active Repositories
                   </div>
-                  <div className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                  <div className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
                     IoT, Web &amp; ML systems open for student PRs
                   </div>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono text-[var(--text-tertiary)]">
+                <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-mono text-[var(--text-tertiary)]">
                   <span>GitHub Sync</span>
                   <span className="text-[var(--text-secondary)]">100% Open Source</span>
                 </div>
@@ -933,12 +779,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-5 sm:p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-                    <Flame size={16} />
-                  </div>
+                  <CircleDot size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--accent-primary)]" />
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium flex items-center gap-1">
                     <Star size={9} className="fill-amber-400" />
                     Starter Issues
@@ -946,18 +790,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
 
                 <div className="mt-3.5">
-                  <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[var(--text-pure)] tracking-tight">
+                  <div className="text-3xl sm:text-4xl font-extrabold font-mono text-[var(--text-pure)] tracking-tight">
                     {totalTasks > 0 ? totalTasks : 18}+
                   </div>
-                  <div className="text-xs font-semibold text-[var(--text-pure)] mt-0.5">
+                  <div className="text-sm font-semibold text-[var(--text-pure)] mt-1">
                     Claimable Issues
                   </div>
-                  <div className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                  <div className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
                     Curated starter tasks with step-by-step guidance
                   </div>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono text-[var(--text-tertiary)]">
+                <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-mono text-[var(--text-tertiary)]">
                   <span>Mentorship</span>
                   <span className="text-amber-400 font-medium">1:1 Maintainer Review</span>
                 </div>
@@ -967,30 +811,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-5 sm:p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                    <ShieldCheck size={16} />
-                  </div>
+                  <ShieldCheck size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--accent-primary)]" />
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
                     I2IT SSO
                   </span>
                 </div>
 
                 <div className="mt-3.5">
-                  <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400 tracking-tight">
+                  <div className="text-3xl sm:text-4xl font-extrabold font-mono text-emerald-400 tracking-tight">
                     100%
                   </div>
-                  <div className="text-xs font-semibold text-[var(--text-pure)] mt-0.5">
+                  <div className="text-sm font-semibold text-[var(--text-pure)] mt-1">
                     Campus Verified
                   </div>
-                  <div className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                  <div className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
                     Authentic college PRN & student roster verification
                   </div>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono text-[var(--text-tertiary)]">
+                <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-mono text-[var(--text-tertiary)]">
                   <span>Trust Level</span>
                   <span className="text-emerald-400 font-medium">Zero Ghost Bots</span>
                 </div>
@@ -1000,33 +842,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="relative group p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
+                className="relative group p-5 sm:p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-surface-hover)] transition-all text-left shadow-2xs overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                    <GitPullRequest size={16} />
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium flex items-center gap-1">
+                  <GitPullRequest size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--accent-primary)]" />
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
                     <Clock size={9} />
                     Median SLA
                   </span>
                 </div>
 
                 <div className="mt-3.5">
-                  <div className="text-2xl sm:text-3xl font-extrabold font-mono text-indigo-400 tracking-tight">
+                  <div className="text-3xl sm:text-4xl font-extrabold font-mono text-emerald-400 tracking-tight">
                     &lt; 24h
                   </div>
-                  <div className="text-xs font-semibold text-[var(--text-pure)] mt-0.5">
+                  <div className="text-sm font-semibold text-[var(--text-pure)] mt-1">
                     Peer Review Turnaround
                   </div>
-                  <div className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                  <div className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
                     Constructive senior feedback before every merge
                   </div>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono text-[var(--text-tertiary)]">
+                <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-mono text-[var(--text-tertiary)]">
                   <span>Attribution</span>
-                  <span className="text-indigo-400 font-medium">Signed PR Receipts</span>
+                  <span className="text-emerald-400 font-medium">Signed PR Receipts</span>
                 </div>
               </motion.div>
             </div>
@@ -1233,72 +1073,71 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* Redesigned Bento Workflow Section (Upgraded from Plain 01/02/03 Boxes) */}
-      <section id="workflow" className="py-16 sm:py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
+      <section id="workflow" className="py-16 sm:py-20 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-10 sm:space-y-12">
 
           {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[11px] font-medium text-[var(--text-secondary)]">
-              <Zap size={12} className="text-[var(--accent-primary)]" />
+              <Zap size={12} aria-hidden="true" className="text-[var(--accent-primary)]" />
               <span className="font-semibold text-[var(--text-pure)]">How It Works</span>
               <span className="text-[var(--text-tertiary)]">• 3-Step Lifecycle</span>
             </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-[var(--text-pure)] tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] font-extrabold text-[var(--text-pure)] tracking-tight leading-[1.12]">
               From first clone to verified contribution credit.
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl mx-auto">
               No dead repository links or uncoordinated WhatsApp groups. Every contribution is structured, reviewed, and permanently verifiable.
             </p>
           </div>
 
           {/* Interactive Bento Grid Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {workflowSteps.map((step, idx) => {
               const FooterIcon = step.footerIcon;
               return (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.45, delay: idx * 0.12 }}
-                  whileHover={{ y: -4, transition: { duration: 0.18 } }}
-                  className="rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-sm hover:shadow-md transition-all"
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
+                  whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.15 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4, delay: idx * 0.1 }}
+                  className="h-full rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] p-5 sm:p-6 lg:p-7 flex flex-col justify-between gap-5 sm:gap-6 shadow-sm"
                 >
                   <div className="space-y-4">
                     {/* Step Header */}
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-[var(--text-pure)] tracking-wider">
+                      <span aria-hidden="true" className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 font-bold text-[var(--accent-primary)] tracking-wider">
                         {step.step}
                       </span>
-                      <span className="text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">
+                      <span className="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">
                         {step.tagline}
                       </span>
                     </div>
 
                     {/* Embedded Rich Live UI Graphic */}
-                    <div>
+                    <div className="min-h-[190px] sm:min-h-[205px] flex items-center">
                       {step.renderMock()}
                     </div>
 
                     {/* Title & Copy */}
-                    <div className="space-y-1.5 pt-1">
-                      <h3 className="font-bold text-base sm:text-lg text-[var(--text-pure)] tracking-tight">
+                    <div className="space-y-2 pt-1">
+                      <h3 className="font-bold text-lg sm:text-xl text-[var(--text-pure)] tracking-tight leading-snug">
                         {step.title}
                       </h3>
-                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                         {step.description}
                       </p>
                     </div>
                   </div>
 
                   {/* Clean Technical Metadata Footer */}
-                  <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                  <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
                     <span className="flex items-center gap-1.5 font-medium">
-                      <FooterIcon size={13} className="shrink-0 text-[var(--text-tertiary)]" />
+                      <FooterIcon size={14} aria-hidden="true" className="shrink-0 text-[var(--text-tertiary)]" />
                       <span>{step.footerText}</span>
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-surface-elevated)] text-[var(--text-tertiary)] font-medium">
+                    <span className="shrink-0 text-[10px] font-mono px-2.5 py-1 rounded-md bg-[var(--bg-surface-elevated)] text-[var(--text-tertiary)] font-medium">
                       {step.footerTag}
                     </span>
                   </div>
@@ -1312,8 +1151,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Student Perspectives & Verified Work Floating Infinite Stream */}
       <section className="py-20 sm:py-28 border-b border-[var(--border-subtle)] relative overflow-hidden bg-[var(--bg-canvas)]">
         {/* Ambient Subtle Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[320px] bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12 relative z-10">
           {/* Section Header */}
           <div className="text-center max-w-2xl mx-auto space-y-3">
@@ -1346,7 +1183,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {/* Card Top: Avatar, Name, Department & Proof Stamp */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.avatarGradient} border font-bold text-xs flex items-center justify-center font-mono shrink-0 shadow-2xs relative`}>
+                      <div className="w-10 h-10 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--accent-primary)] font-bold text-xs flex items-center justify-center font-mono shrink-0 relative">
                         {item.avatarInitials}
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[var(--bg-surface)]" />
                       </div>
@@ -1405,7 +1242,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {/* Card Top: Avatar, Name, Department & Proof Stamp */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.avatarGradient} border font-bold text-xs flex items-center justify-center font-mono shrink-0 shadow-2xs relative`}>
+                      <div className="w-10 h-10 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--accent-primary)] font-bold text-xs flex items-center justify-center font-mono shrink-0 relative">
                         {item.avatarInitials}
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[var(--bg-surface)]" />
                       </div>
@@ -1424,7 +1261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono font-medium border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-cyan-400 shrink-0">
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono font-medium border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-emerald-400 shrink-0">
                       {item.proofType === 'review' ? (
                         <CheckCircle2 size={11} className="shrink-0" />
                       ) : (

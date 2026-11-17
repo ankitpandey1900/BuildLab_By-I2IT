@@ -11,30 +11,13 @@ export interface AdminCaller {
 
 export async function getAdminCaller(): Promise<AdminCaller | null> {
   const session = await auth.api.getSession({ headers: await headers() });
-  
-  if (session?.user) {
-    const caller = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, name: true, role: true },
-    });
-    
-    if (caller && canVerifyStudents(caller.role)) {
-      return caller;
-    }
-  }
+  if (!session?.user) return null;
 
-  // In local development / preview testing without an active cookie session,
-  // resolve to an existing registered admin/faculty account in the database.
-  if (process.env.NODE_ENV !== "production") {
-    const fallback = await prisma.user.findFirst({
-      where: {
-        role: { in: ["admin", "faculty", "lead", "reviewer"] },
-      },
-      select: { id: true, name: true, role: true },
-    });
-    if (fallback) return fallback;
-  }
+  const caller = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, role: true },
+  });
 
-  return null;
+  return caller && canVerifyStudents(caller.role) ? caller : null;
 }
 

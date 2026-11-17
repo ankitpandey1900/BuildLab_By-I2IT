@@ -84,7 +84,7 @@ export const ThemeToggle: React.FC = () => {
     {
       id: "dark",
       name: "Dark",
-      icon: <Moon size={14} className="text-indigo-400 shrink-0" />,
+      icon: <Moon size={14} className="text-[var(--accent-primary)] shrink-0" />,
     },
     {
       id: "light",
@@ -108,17 +108,18 @@ export const ThemeToggle: React.FC = () => {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="true"
         aria-expanded={isOpen}
+        aria-label={`Theme: ${currentOption.name}`}
         title={`Current theme: ${currentOption.name}. Click to switch`}
-        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] hover:border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] transition-all cursor-pointer shadow-2xs group"
+        className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 text-[var(--text-secondary)] shadow-2xs transition-all cursor-pointer hover:bg-[var(--bg-surface-elevated)] hover:border-[var(--border-default)] hover:text-[var(--text-pure)] group sm:min-h-0 sm:min-w-0 sm:justify-start"
       >
         <div className="flex items-center justify-center w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] group-hover:scale-105 transition-transform">
-          {theme === "dark" && <Moon size={13} className="text-indigo-400" />}
+          {theme === "dark" && <Moon size={13} className="text-[var(--accent-primary)]" />}
           {theme === "light" && <Sun size={13} className="text-orange-500" />}
           {theme === "eye protect" && <Glasses size={13} className="text-amber-400" />}
         </div>
-        <ChevronDown 
+        <ChevronDown
           size={12} 
-          className={`text-[var(--text-tertiary)] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} 
+          className={`hidden text-[var(--text-tertiary)] transition-transform duration-200 sm:block ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -136,7 +137,7 @@ export const ThemeToggle: React.FC = () => {
                   key={opt.id}
                   type="button"
                   onClick={() => switchTheme(opt.id)}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  className={`min-h-11 sm:min-h-0 w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     isSelected
                       ? "bg-[var(--bg-surface-elevated)] text-[var(--text-pure)] font-semibold shadow-2xs"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:bg-[var(--bg-surface-hover)]"
