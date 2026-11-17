@@ -18,10 +18,11 @@ import { CollaborationInbox } from './components/CollaborationInbox';
 import { SupportReviewerWorkspace } from './components/SupportReviewerWorkspace';
 import { ProfileView } from './components/ProfileView';
 import { StudentVerificationModal } from './components/StudentVerificationModal';
-import { AdminVerificationDesk } from './components/AdminVerificationDesk';
+import { AdminConsole } from './components/AdminConsole';
 import { MentorChatModal } from './components/MentorChatModal';
 import { Check } from 'lucide-react';
 import { authClient } from './lib/auth-client';
+import { canVerifyStudents } from './lib/permissions';
 
 const fallbackUser: StudentProfile = {
   id: '',
@@ -81,6 +82,7 @@ export const App: React.FC<AppProps> = ({
 
   const isUserVerified = currentUser.verificationStatus === 'VERIFIED' || currentUser.collegeVerified;
   const isGuest = currentUser.isGuest || !currentUser.id;
+  const canAccessAdmin = !isGuest && canVerifyStudents(currentUser.role ?? "student");
 
   const checkVerificationOrPrompt = (actionReason: string): boolean => {
     if (isGuest) {
@@ -487,10 +489,6 @@ export const App: React.FC<AppProps> = ({
             setIsCreateOpen(true);
           }
         }}
-        onOpenVerificationModal={() => {
-          setVerificationActionReason('');
-          setIsVerificationModalOpen(true);
-        }}
         onSignOut={handleSignOut}
       />
 
@@ -566,13 +564,24 @@ export const App: React.FC<AppProps> = ({
           />
         )}
 
-        {/* Tab: Admin PRN Verification Desk */}
-        {currentTab === 'admin' && (
-          <AdminVerificationDesk
+        {/* Tab: Admin workspace */}
+        {currentTab === 'admin' && canAccessAdmin && (
+          <AdminConsole
+            currentUserId={currentUser.id}
+            currentUserRole={currentUser.role ?? "student"}
             onStatusUpdated={() => {
               showToast('Student verification record updated.');
             }}
           />
+        )}
+        {currentTab === 'admin' && !canAccessAdmin && (
+          <section
+            role="alert"
+            className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6 text-sm text-[var(--text-secondary)]"
+          >
+            <h2 className="font-semibold text-[var(--text-pure)]">Admin access required</h2>
+            <p className="mt-1">Your account does not have permission to open this workspace.</p>
+          </section>
         )}
 
         {/* Tab: Student Profile */}
@@ -609,22 +618,22 @@ export const App: React.FC<AppProps> = ({
             <span>College Engineering Network</span>
           </div>
 
-          <div className="flex items-center gap-5 text-[11.5px] text-[var(--text-secondary)] flex-wrap justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[11.5px] text-[var(--text-secondary)] sm:gap-5">
             <button 
               onClick={() => setCurrentTab('catalog')} 
-              className="hover:text-[var(--text-pure)] transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center px-2 hover:text-[var(--text-pure)] transition-colors cursor-pointer"
             >
               Projects
             </button>
             <button 
               onClick={() => setCurrentTab('collab')} 
-              className="hover:text-[var(--text-pure)] transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center px-2 hover:text-[var(--text-pure)] transition-colors cursor-pointer"
             >
               Collaborate
             </button>
             <button 
               onClick={() => setCurrentTab('profile')} 
-              className="hover:text-[var(--text-pure)] transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center px-2 hover:text-[var(--text-pure)] transition-colors cursor-pointer"
             >
               Developer Profile
             </button>

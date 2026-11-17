@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await sessionUser();
-  const applicantId = session?.user?.id || (await prisma.user.findFirst({ where: { email: { contains: "aarav" } } }))?.id || (await prisma.user.findFirst())?.id;
+  const applicantId = session?.user?.id;
   if (!applicantId) return NextResponse.json({ message: "Sign in required." }, { status: 401 });
 
   // Rate Limiting: Max 10 collaboration requests per 10 minutes per student

@@ -6,6 +6,11 @@ import { ForbiddenError, handleApiError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
+interface DepartmentMetrics {
+  total: number;
+  verified: number;
+}
+
 export async function GET() {
   try {
     // Step 1: Admin validation - only authorized administrators may view accreditation metrics
@@ -20,6 +25,7 @@ export async function GET() {
       verifiedStudents,
       departmentGroups,
       totalVerifiedContributions,
+      commitsByDepartmentAndMonth,
     ] = await Promise.all([
       // Total count of student accounts
       prisma.user.count({
@@ -40,38 +46,65 @@ export async function GET() {
           _all: true,
         },
       }),
-      // Step 3: Total verified open-source contributions
-      prisma.verifiedContribution.count(),
+      // Total verified open-source contributions
+      prisma.verifiedContribution.count({
+        where: { verifiedByGitHub: true },
+      }),
+      // Aggregate verified pushes and explicitly labeled seed samples by department and month.
+      prisma.$queryRaw<
+        Array<{ department: string | null; month: string; source: string; commits: bigint }>
+      >`
+        SELECT
+          users."department" AS "department",
+          TO_CHAR(DATE_TRUNC('month', contributions."createdAt"), 'YYYY-MM') AS "month",
+          contributions."source" AS "source",
+          COUNT(contributions."id") AS "commits"
+        FROM "VerifiedContribution" AS contributions
+        INNER JOIN "User" AS users ON users."id" = contributions."userId"
+        WHERE users."role" = 'student'
+          AND contributions."type" = 'commit_pushed'
+          AND (
+            contributions."verifiedByGitHub" = TRUE
+            OR contributions."source" = 'seed_demo'
+          )
+          AND contributions."createdAt" >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+        GROUP BY users."department", DATE_TRUNC('month', contributions."createdAt"), contributions."source"
+        ORDER BY "month" ASC
+      `,
     ]);
 
-    // Step 4: Handle null departments & map into structured byDepartment format
-    const byDepartment: Record<string, { verified: number; pending: number }> = {};
+    const byDepartment = new Map<string, DepartmentMetrics>();
+    const getDepartmentMetrics = (departmentName: string | null) => {
+      const name = departmentName?.trim() || "General / Unassigned";
+      let department = byDepartment.get(name);
+      if (!department) {
+        department = { total: 0, verified: 0 };
+        byDepartment.set(name, department);
+      }
+      return department;
+    };
 
     for (const item of departmentGroups) {
-      // Fallback for null/unassigned department in response formatting (does not change stored value)
-      const departmentName = item.department?.trim() ? item.department.trim() : "General / Unassigned";
-
-      if (!byDepartment[departmentName]) {
-        byDepartment[departmentName] = {
-          verified: 0,
-          pending: 0,
-        };
-      }
+      const department = getDepartmentMetrics(item.department);
+      department.total += item._count._all;
 
       if (item.verificationStatus === "VERIFIED") {
-        byDepartment[departmentName].verified += item._count._all;
-      } else if (item.verificationStatus === "PENDING_APPROVAL") {
-        byDepartment[departmentName].pending += item._count._all;
+        department.verified += item._count._all;
       }
     }
 
-    // Step 5: Return structured statistics matching the accreditation metrics specification
     return NextResponse.json(
       {
         totalStudents,
         verifiedStudents,
-        byDepartment,
+        byDepartment: Object.fromEntries(byDepartment),
         totalVerifiedContributions,
+        commitTrend: commitsByDepartmentAndMonth.map((item) => ({
+          department: item.department?.trim() || "General / Unassigned",
+          month: item.month,
+          commits: Number(item.commits),
+          isDemoData: item.source === "seed_demo",
+        })),
       },
       { status: 200 }
     );

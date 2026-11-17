@@ -39,7 +39,7 @@ export interface Project {
   members?: { id: string; userId: string; role: string; user?: { id: string; name: string; avatarUrl?: string } }[];
 }
 export interface CollaborationRequest { id: string; projectId: string; projectName: string; applicant: { id: string; name: string; username: string; avatarUrl: string; skills: string[]; collegeVerified: boolean }; role: string; targetIssueTitle?: string; message: string; status: 'pending' | 'accepted' | 'declined' | 'changes_requested'; submittedAt: string; }
-export interface ContributionRecord { id: string; type: 'pr_merged' | 'issue_resolved' | 'commit_pushed' | 'code_review' | 'mentorship_session'; title: string; repo: string; verifiedByGitHub: boolean; externalUrl?: string; date: string; sha?: string; details?: string; }
+export interface ContributionRecord { id: string; type: 'pr_merged' | 'issue_resolved' | 'commit_pushed' | 'code_review' | 'mentorship_session'; title: string; repo: string; verifiedByGitHub: boolean; source?: string; createdAt?: string; externalUrl?: string; date: string; sha?: string; details?: string; }
 export type VerificationStatusType = 'UNVERIFIED' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
 export interface StudentProfile { 
   id: string; 

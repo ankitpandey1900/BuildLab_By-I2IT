@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { 
-  ShieldCheck, 
   Check, 
   X, 
-  Clock, 
   Search, 
   AlertCircle, 
   UserCheck, 
@@ -73,7 +71,6 @@ const DEPARTMENT_FILTER_OPTIONS = [
   { id: "CE", label: "CE" },
   { id: "IT", label: "IT" },
   { id: "ENTC", label: "E&TC" },
-  { id: "AIDS", label: "AI&DS" },
   { id: "FACULTY", label: "Faculty" },
 ] as const;
 
@@ -130,7 +127,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
   onStatusUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState<"pending" | "verified" | "rejected">("pending");
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
   const [pending, setPending] = useState<VerificationStudent[]>([]);
   const [verified, setVerified] = useState<VerificationStudent[]>([]);
@@ -163,6 +160,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [auditEvents, setAuditEvents] = useState<AuditLogEvent[]>([]);
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
@@ -211,14 +209,20 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
 
   const fetchAuditTrail = async () => {
     setIsLoadingAudit(true);
+    setAuditError(null);
     try {
       const res = await fetch("/api/admin/verifications/audit");
-      if (res.ok) {
-        const data = await res.json();
-        setAuditEvents(data.events || []);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || `Failed to fetch audit events (${res.status}).`);
       }
+      if (!data || !Array.isArray(data.events)) {
+        throw new Error("The audit log response was incomplete.");
+      }
+      setAuditEvents(data.events);
     } catch (err) {
       console.error("Failed to fetch audit trail", err);
+      setAuditError(err instanceof Error ? err.message : "Failed to fetch audit events.");
     } finally {
       setIsLoadingAudit(false);
     }
@@ -530,41 +534,26 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
   };
 
   const getDepartmentBadge = (dept: string | null, role: string) => {
-    if (role === "faculty") {
-      return {
-        label: dept || "Faculty / Mentor",
-        classes: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
-      };
-    }
-    const d = (dept || "").toLowerCase();
-    if (d.includes("comp") || d.includes("ce")) {
-      return {
-        label: dept || "Computer Engg",
-        classes: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
-      };
-    }
-    if (d.includes("it") || d.includes("information")) {
-      return {
-        label: dept || "Information Tech",
-        classes: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-      };
-    }
-    if (d.includes("entc") || d.includes("e&tc") || d.includes("elect")) {
-      return {
-        label: dept || "E&TC Engg",
-        classes: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-      };
-    }
-    if (d.includes("ai") || d.includes("data") || d.includes("aiml")) {
-      return {
-        label: dept || "AI & Data Science",
-        classes: "bg-violet-500/10 text-violet-400 border border-violet-500/20",
-      };
-    }
     return {
-      label: dept || "Engineering",
-      classes: "bg-zinc-500/10 text-zinc-300 border border-zinc-500/20",
+      label: dept || (role === "faculty" ? "Faculty / Mentor" : "Unassigned"),
+      classes: "border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]",
     };
+  };
+
+  const getVerificationStatusTone = (status: VerificationStudent["verificationStatus"]) => {
+    if (status === "VERIFIED") {
+      return "border-emerald-500/20 text-emerald-300";
+    }
+    if (status === "PENDING_APPROVAL") {
+      return "border-amber-500/25 text-amber-300";
+    }
+    return "border-rose-500/25 text-rose-300";
+  };
+
+  const getVerificationStatusLabel = (status: VerificationStudent["verificationStatus"]) => {
+    if (status === "VERIFIED") return "Verified";
+    if (status === "PENDING_APPROVAL") return "Awaiting review";
+    return "Needs revision";
   };
 
   const filterList = (list: VerificationStudent[]) => {
@@ -580,7 +569,6 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
           if (deptFilter === "CE") return d.includes("comp") || d.includes("ce");
           if (deptFilter === "IT") return d.includes("it") || d.includes("information");
           if (deptFilter === "ENTC") return d.includes("entc") || d.includes("e&tc") || d.includes("elect");
-          if (deptFilter === "AIDS") return d.includes("ai") || d.includes("data");
           return true;
         });
       }
@@ -625,256 +613,189 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
   };
 
   return (
-    <div className="space-y-6 relative pb-16">
-      {/* Header Panel */}
-      <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-[var(--text-pure)]">
-                Campus Verification Desk
-              </h2>
-              <p className="text-xs text-[var(--text-secondary)]">
-                Verify university PRNs against college rosters to grant contributor & maintainer rights.
-              </p>
-            </div>
-          </div>
-
-          {/* Action Toolbar: Audit Trail, Roster Upload, CSV Export, Refresh */}
-          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={openAuditModal}
-              className="btn btn-secondary btn-sm flex items-center gap-1.5 cursor-pointer text-xs"
-              title="View verification audit log and reviewer history"
-            >
-              <History size={13} className="text-indigo-400" />
-              <span>Audit Log</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsRosterModalOpen(true)}
-              className="btn btn-secondary btn-sm flex items-center gap-1.5 cursor-pointer text-xs"
-              title="Upload college roster CSV to auto-match PRNs"
-            >
-              <FileSpreadsheet size={13} className="text-emerald-400" />
-              <span>{rosterMap ? "Roster Active" : "Import Roster"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="btn btn-secondary btn-sm flex items-center gap-1.5 cursor-pointer text-xs"
-              title="Export verified roster for NAAC/NBA accreditation"
-            >
-              <Download size={13} />
-              <span>Export CSV</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={fetchVerifications}
-              disabled={isLoading}
-              className="btn btn-secondary btn-sm flex items-center gap-1.5 cursor-pointer text-xs"
-            >
-              <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
-              <span>Refresh</span>
-            </button>
-          </div>
+    <div className="relative space-y-5 pb-16">
+      <header className="flex flex-col gap-3 border-b border-[var(--border-subtle)] pb-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-[var(--text-pure)]">Verification register</h2>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Review campus identity records against the official roster.
+          </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsRosterModalOpen(true)}
+            className="btn btn-secondary btn-sm min-h-10"
+            title="Upload college roster CSV to match PRNs"
+          >
+            <FileSpreadsheet size={14} aria-hidden="true" />
+            {rosterMap ? "Roster loaded" : "Import roster"}
+          </button>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="btn btn-secondary btn-sm min-h-10"
+            title="Export verified roster for accreditation"
+          >
+            <Download size={14} aria-hidden="true" />
+            Export
+          </button>
+          <button
+            type="button"
+            onClick={openAuditModal}
+            className="btn btn-secondary btn-sm min-h-10"
+            title="View reviewer history"
+          >
+            <History size={14} aria-hidden="true" />
+            Audit
+          </button>
+          <button
+            type="button"
+            onClick={fetchVerifications}
+            disabled={isLoading}
+            aria-label="Refresh verification records"
+            className="btn btn-secondary btn-sm min-h-10 px-2.5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
 
-        {/* Active Roster Info Banner */}
-        {rosterMap && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={15} />
-              <span>
-                <strong>College Roster Loaded:</strong> {rosterFileName} ({rosterMap.size} students on file)
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {activeTab === "pending" && (
-                <button
-                  type="button"
-                  onClick={handleSelectAllRosterMatches}
-                  className="underline hover:text-emerald-300 font-semibold cursor-pointer"
-                >
-                  Select All 100% Matches
-                </button>
-              )}
+      {rosterMap && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-emerald-500 py-2 pl-3 text-sm">
+          <span className="inline-flex items-center gap-2 text-[var(--text-secondary)]">
+            <CheckCircle2 size={15} className="text-emerald-400" aria-hidden="true" />
+            <strong className="font-medium text-[var(--text-pure)]">{rosterFileName}</strong>
+            <span>{rosterMap.size} roster records loaded</span>
+          </span>
+          <div className="flex items-center gap-4">
+            {activeTab === "pending" && (
               <button
                 type="button"
-                onClick={() => {
-                  setRosterMap(null);
-                  setRosterFileName(null);
-                }}
-                className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer"
+                onClick={handleSelectAllRosterMatches}
+                className="text-sm font-medium text-emerald-300 underline-offset-4 hover:underline"
               >
-                Clear Roster
+                Select exact matches
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setRosterMap(null);
+                setRosterFileName(null);
+              }}
+              className="text-sm text-[var(--text-secondary)] underline-offset-4 hover:text-rose-300 hover:underline"
+            >
+              Remove roster
+            </button>
           </div>
-        )}
-
-        {feedbackMessage && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center gap-2">
-            <Check size={14} />
-            <span>{feedbackMessage}</span>
-          </div>
-        )}
-
-        {/* Stats Strip with Live Pending Indicator */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab("pending")}
-            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
-              activeTab === "pending"
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400 ring-1 ring-amber-500/20"
-                : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)]"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {pending.length > 0 && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                  </span>
-                )}
-                <span className="text-xs font-medium">Pending Review</span>
-              </div>
-              <Clock size={15} />
-            </div>
-            <p className="text-2xl font-bold font-mono mt-1.5 text-[var(--text-pure)]">
-              {pending.length}
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("verified")}
-            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
-              activeTab === "verified"
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ring-1 ring-emerald-500/20"
-                : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)]"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium">Verified Students</span>
-              <UserCheck size={15} />
-            </div>
-            <p className="text-2xl font-bold font-mono mt-1.5 text-[var(--text-pure)]">
-              {verified.length}
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("rejected")}
-            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
-              activeTab === "rejected"
-                ? "bg-rose-500/10 border-rose-500/30 text-rose-400 ring-1 ring-rose-500/20"
-                : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] hover:border-[var(--border-hover)]"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium">Revision Needed</span>
-              <AlertCircle size={15} />
-            </div>
-            <p className="text-2xl font-bold font-mono mt-1.5 text-[var(--text-pure)]">
-              {rejected.length}
-            </p>
-          </button>
         </div>
+      )}
+
+      {feedbackMessage && (
+        <p role="status" className="border-l-2 border-emerald-500 py-2 pl-3 text-sm text-emerald-300">
+          {feedbackMessage}
+        </p>
+      )}
+
+      <div
+        role="group"
+        aria-label="Filter by verification status"
+        className="flex gap-5 overflow-x-auto border-b border-[var(--border-subtle)]"
+      >
+        {([
+          ["pending", "Awaiting review", pending.length],
+          ["verified", "Verified", verified.length],
+          ["rejected", "Needs revision", rejected.length],
+        ] as const).map(([status, label, count]) => (
+          <button
+            key={status}
+            type="button"
+            aria-pressed={activeTab === status}
+            onClick={() => setActiveTab(status)}
+            className={`inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400 ${
+              activeTab === status
+                ? "border-emerald-400 text-[var(--text-pure)]"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-pure)]"
+            }`}
+          >
+            {label}
+            <span className="tabular-nums text-xs text-[var(--text-tertiary)]">{count}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Control Bar: Selection, Filters, Search & View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-subtle)]">
-        {/* Select All Checkbox & Search */}
-        <div className="flex items-center gap-3 flex-1">
+      <div className="flex flex-col gap-3 border-b border-[var(--border-subtle)] pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {currentList.length > 0 && (
             <button
               type="button"
               onClick={toggleSelectAll}
               title={isAllSelected ? "Deselect all" : "Select all in view"}
-              className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-pure)] cursor-pointer px-2 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]"
+              className="btn btn-secondary btn-sm min-h-10 self-start"
             >
               {isAllSelected ? (
-                <CheckSquare size={14} className="text-[var(--accent-primary)]" />
+                <CheckSquare size={14} aria-hidden="true" />
               ) : (
-                <Square size={14} />
+                <Square size={14} aria-hidden="true" />
               )}
-              <span className="font-mono text-[11px] hidden sm:inline">
-                {isAllSelected ? "Deselect All" : "Select All"}
-              </span>
+              {isAllSelected ? "Clear selection" : "Select all"}
             </button>
           )}
-
-          <label className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+          <label className="relative block w-full sm:max-w-sm">
+            <span className="sr-only">Search verification records</span>
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
-              type="text"
+              type="search"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search student, PRN, or roll no…"
-              className="w-full h-8 pl-8 pr-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-pure)] outline-none focus:border-[var(--accent-primary)] placeholder-[var(--text-tertiary)]"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search name or PRN"
+              className="min-h-10 w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-pure)] outline-none placeholder:text-[var(--text-tertiary)] focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/15"
             />
           </label>
-        </div>
-
-        {/* Department Quick Filter Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          {DEPARTMENT_FILTER_OPTIONS.map((pill) => (
-            <button
-              key={pill.id}
-              type="button"
-              onClick={() => setDeptFilter(pill.id)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer shrink-0 ${
-                deptFilter === pill.id
-                  ? "bg-[var(--accent-primary)] text-black"
-                  : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-pure)] border border-[var(--border-subtle)]"
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-
-        {/* View Switcher & Result Counter */}
-        <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-          <span className="text-[11px] text-[var(--text-tertiary)] font-mono">
+          <span className="text-xs tabular-nums text-[var(--text-tertiary)] sm:ml-auto">
             {currentList.length} record{currentList.length === 1 ? "" : "s"}
           </span>
+        </div>
 
-          <div className="flex items-center p-0.5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2" role="group" aria-label="Filter by department">
+          {DEPARTMENT_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={deptFilter === option.id}
+              onClick={() => setDeptFilter(option.id)}
+              className={`min-h-9 border-b text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400 ${
+                deptFilter === option.id
+                  ? "border-emerald-400 text-[var(--text-pure)]"
+                  : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-pure)]"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+          <div className="ml-auto flex items-center gap-1 border-l border-[var(--border-subtle)] pl-3">
             <button
               type="button"
               onClick={() => setViewMode("cards")}
-              title="Card View"
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                viewMode === "cards"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-pure)] shadow-sm"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              aria-label="Show compact records"
+              aria-pressed={viewMode === "cards"}
+              className={`flex h-9 w-9 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400 ${
+                viewMode === "cards" ? "text-emerald-300" : "text-[var(--text-tertiary)] hover:text-[var(--text-pure)]"
               }`}
             >
-              <LayoutGrid size={14} />
+              <LayoutGrid size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              title="Table View"
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                viewMode === "table"
-                  ? "bg-[var(--bg-surface)] text-[var(--text-pure)] shadow-sm"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              aria-label="Show table"
+              aria-pressed={viewMode === "table"}
+              className={`flex h-9 w-9 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400 ${
+                viewMode === "table" ? "text-emerald-300" : "text-[var(--text-tertiary)] hover:text-[var(--text-pure)]"
               }`}
             >
-              <List size={14} />
+              <List size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -882,8 +803,8 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
 
       {/* Main Records Container */}
       {isLoading ? (
-        <div className="p-16 text-center text-xs text-[var(--text-tertiary)] bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)]">
-          <RefreshCw size={18} className="animate-spin mx-auto mb-2 text-indigo-400" />
+        <div className="border-y border-[var(--border-subtle)] py-12 text-center text-sm text-[var(--text-secondary)]">
+          <RefreshCw size={18} className="animate-spin mx-auto mb-2 text-emerald-400" />
           Loading verification records…
         </div>
       ) : currentList.length === 0 ? (
@@ -898,7 +819,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
         </div>
       ) : viewMode === "cards" ? (
         /* CARD VIEW */
-        <div className="space-y-3">
+        <div className="divide-y divide-[var(--border-subtle)] border-y border-[var(--border-subtle)]">
           {currentList.map((student) => {
             const isSelected = selectedIds.includes(student.id);
             const deptInfo = getDepartmentBadge(student.department, student.role);
@@ -907,10 +828,10 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
             return (
               <div
                 key={student.id}
-                className={`p-4 sm:p-5 rounded-2xl bg-[var(--bg-surface)] border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                className={`flex flex-col justify-between gap-4 px-3 py-4 transition-colors sm:px-4 md:flex-row md:items-center ${
                   isSelected
-                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5"
-                    : "border-[var(--border-subtle)] hover:border-[var(--border-hover)]"
+                    ? "bg-emerald-500/5"
+                    : "hover:bg-[var(--bg-surface-elevated)]/40"
                 }`}
               >
                 {/* Student Selection & Identity */}
@@ -918,7 +839,8 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleSelectOne(student.id)}
-                    className="mt-1 text-[var(--text-tertiary)] hover:text-[var(--text-pure)] cursor-pointer"
+                    aria-label={`${isSelected ? "Deselect" : "Select"} ${student.name}`}
+                    className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-pure)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400"
                   >
                     {isSelected ? (
                       <CheckSquare size={16} className="text-[var(--accent-primary)]" />
@@ -936,7 +858,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                     <img
                       src={getStudentAvatar(student)}
                       alt={student.name}
-                      className="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)] group-hover:border-indigo-400 transition-colors"
+                      className="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)] group-hover:border-emerald-400 transition-colors"
                     />
                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Eye size={14} className="text-white" />
@@ -948,7 +870,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                       <button
                         type="button"
                         onClick={() => setInspectingStudent(student)}
-                        className="font-bold text-sm text-[var(--text-pure)] truncate hover:text-indigo-400 transition-colors text-left cursor-pointer"
+                        className="font-bold text-sm text-[var(--text-pure)] truncate hover:text-emerald-400 transition-colors text-left cursor-pointer"
                       >
                         {student.name}
                       </button>
@@ -956,20 +878,14 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                         ({student.email})
                       </span>
                       <span
-                        className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full ${deptInfo.classes}`}
+                        className={`text-xs ${deptInfo.classes}`}
                       >
                         {deptInfo.label}
                       </span>
                       <span
-                        className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full ${
-                          student.verificationStatus === "VERIFIED"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                            : student.verificationStatus === "PENDING_APPROVAL"
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                            : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                        }`}
+                        className={`border-b-2 text-xs ${getVerificationStatusTone(student.verificationStatus)}`}
                       >
-                        {student.verificationStatus}
+                        {getVerificationStatusLabel(student.verificationStatus)}
                       </span>
 
                       {/* Roster Match Badge */}
@@ -1003,7 +919,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                       <button
                         type="button"
                         onClick={() => setInspectingStudent(student)}
-                        className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 flex items-center gap-1 cursor-pointer"
+                        className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1 cursor-pointer"
                       >
                         <GitBranch size={10} />
                         <span>Evidence</span>
@@ -1016,7 +932,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                         <span className="text-[var(--text-tertiary)]">
                           {student.role === "faculty" ? "Emp Code:" : "PRN:"}
                         </span>
-                        <strong className="font-mono text-indigo-400 font-semibold tracking-wide">
+                        <strong className="font-mono text-emerald-400 font-semibold tracking-wide">
                           {student.prnNumber || "Not provided"}
                         </strong>
                       </span>
@@ -1157,10 +1073,11 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
         </div>
       ) : (
         /* DENSE TABLE VIEW */
-        <div className="overflow-x-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-          <table className="w-full text-left border-collapse text-xs">
+        <div className="overflow-x-auto border-y border-[var(--border-subtle)]">
+          <table className="w-full min-w-[900px] border-collapse text-left text-[13px]">
+            <caption className="sr-only">Campus verification records</caption>
             <thead>
-              <tr className="bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-secondary)] uppercase tracking-wider">
+              <tr className="border-b border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
                 <th className="py-3 px-3 w-8">
                   <button
                     type="button"
@@ -1175,15 +1092,13 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                     )}
                   </button>
                 </th>
-                <th className="py-3 px-4">Student</th>
-                <th className="py-3 px-4">PRN / Emp Code</th>
-                <th className="py-3 px-4">Roll No</th>
-                <th className="py-3 px-4">Department</th>
-                <th className="py-3 px-4">Year</th>
-                <th className="py-3 px-4">Status</th>
-                {rosterMap && <th className="py-3 px-4">Roster Cross-Check</th>}
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th scope="col" className="py-3 px-3 font-medium">Student</th>
+                <th scope="col" className="py-3 px-3 font-medium">PRN / Emp Code</th>
+                <th scope="col" className="py-3 px-3 font-medium">Department</th>
+                <th scope="col" className="py-3 px-3 font-medium">Status</th>
+                {rosterMap && <th scope="col" className="py-3 px-3 font-medium">Roster match</th>}
+                <th scope="col" className="py-3 px-3 font-medium">Date</th>
+                <th scope="col" className="py-3 px-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]/50">
@@ -1197,7 +1112,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                     <tr
                       className={`transition-colors ${
                         isSelected
-                          ? "bg-[var(--accent-primary)]/5"
+                          ? "bg-emerald-500/5"
                           : "hover:bg-[var(--bg-surface-elevated)]/40"
                       }`}
                     >
@@ -1205,7 +1120,8 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                         <button
                           type="button"
                           onClick={() => toggleSelectOne(student.id)}
-                          className="text-[var(--text-tertiary)] hover:text-[var(--text-pure)] cursor-pointer"
+                          aria-label={`${isSelected ? "Deselect" : "Select"} ${student.name}`}
+                          className="flex h-10 w-10 items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-pure)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400"
                         >
                           {isSelected ? (
                             <CheckSquare size={14} className="text-[var(--accent-primary)]" />
@@ -1214,7 +1130,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                           )}
                         </button>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
                           <button
                             type="button"
@@ -1225,14 +1141,14 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                             <img
                               src={getStudentAvatar(student)}
                               alt={student.name}
-                              className="w-7 h-7 rounded-full object-cover border border-[var(--border-subtle)] group-hover:border-indigo-400"
+                              className="w-7 h-7 rounded-full object-cover border border-[var(--border-subtle)] group-hover:border-emerald-400"
                             />
                           </button>
                           <div className="min-w-0">
                             <button
                               type="button"
                               onClick={() => setInspectingStudent(student)}
-                              className="font-semibold text-[var(--text-pure)] truncate hover:text-indigo-400 transition-colors text-left cursor-pointer block"
+                              className="font-semibold text-[var(--text-pure)] truncate hover:text-emerald-400 transition-colors text-left cursor-pointer block"
                             >
                               {student.name}
                             </button>
@@ -1242,37 +1158,25 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-semibold text-indigo-400">
+                      <td className="py-3 px-3">
+                        <span className="font-mono font-semibold text-emerald-400">
                           {student.prnNumber || "—"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-[var(--text-secondary)]">
-                        {student.rollNumber || "—"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full ${deptInfo.classes}`}>
+                      <td className="py-3 px-3">
+                        <span className={`text-xs ${deptInfo.classes}`}>
                           {deptInfo.label}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-[var(--text-tertiary)]">
-                        {student.academicYear || "—"}
-                      </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         <span
-                          className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full ${
-                            student.verificationStatus === "VERIFIED"
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : student.verificationStatus === "PENDING_APPROVAL"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          }`}
+                          className={`whitespace-nowrap border-b-2 text-xs ${getVerificationStatusTone(student.verificationStatus)}`}
                         >
-                          {student.verificationStatus}
+                          {getVerificationStatusLabel(student.verificationStatus)}
                         </span>
                       </td>
                       {rosterMap && (
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-3">
                           {rosterMatch ? (
                             <span
                               className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
@@ -1302,20 +1206,21 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                           )}
                         </td>
                       )}
-                      <td className="py-3 px-4 text-[11px] text-[var(--text-tertiary)] font-mono whitespace-nowrap">
+                      <td className="py-3 px-3 text-[11px] text-[var(--text-tertiary)] font-mono whitespace-nowrap">
                         {student.verificationStatus === "VERIFIED"
                           ? formatDisplayDate(student.verifiedAt)
                           : formatDisplayDate(student.createdAt)}
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => setInspectingStudent(student)}
                             title="Inspect Contributor Evidence"
-                            className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 cursor-pointer"
+                            aria-label={`Inspect ${student.name}'s contributor evidence`}
+                            className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 cursor-pointer"
                           >
-                            <Eye size={13} />
+                            <Eye size={13} aria-hidden="true" />
                           </button>
 
                           {student.verificationStatus === "PENDING_APPROVAL" ? (
@@ -1325,9 +1230,10 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                                 disabled={actionInProgress === student.id}
                                 onClick={() => handleApprove(student.id)}
                                 title="Approve Verification"
+                                aria-label={`Approve ${student.name}`}
                                 className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 cursor-pointer disabled:opacity-50"
                               >
-                                <Check size={13} />
+                                <Check size={13} aria-hidden="true" />
                               </button>
                               <button
                                 type="button"
@@ -1337,9 +1243,10 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                                   setRejectionNote("");
                                 }}
                                 title="Request Revision"
+                                aria-label={`Request changes from ${student.name}`}
                                 className="p-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 cursor-pointer disabled:opacity-50"
                               >
-                                <X size={13} />
+                                <X size={13} aria-hidden="true" />
                               </button>
                             </>
                           ) : student.verificationStatus === "VERIFIED" ? (
@@ -1364,7 +1271,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                     {/* Table Inline Rejection Row */}
                     {rejectingStudentId === student.id && (
                       <tr className="bg-rose-500/5">
-                        <td colSpan={rosterMap ? 10 : 9} className="p-3 space-y-2">
+                        <td colSpan={rosterMap ? 8 : 7} className="p-3 space-y-2">
                           <div className="flex flex-wrap gap-1">
                             {CANNED_REASONS.map((preset) => (
                               <button
@@ -1417,10 +1324,10 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
 
       {/* FLOATING STICKY BULK ACTION BAR */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-md border border-[var(--border-default)] shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-4 left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-3 border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 shadow-xl sm:bottom-6 sm:flex-nowrap sm:gap-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
-            <span className="text-xs font-mono font-semibold text-[var(--text-pure)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+            <span className="text-sm font-medium tabular-nums text-[var(--text-pure)]">
               {selectedIds.length} selected
             </span>
           </div>
@@ -1550,7 +1457,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-indigo-400">
+              <div className="flex items-center gap-2 text-emerald-400">
                 <FileSpreadsheet size={20} />
                 <h3 className="font-bold text-sm text-[var(--text-pure)]">
                   Import College Roster (.CSV)
@@ -1566,7 +1473,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
             </div>
 
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-              Upload the official college enrollment list (.csv) containing columns: <code className="font-mono text-indigo-300">PRN, Name, RollNo, Department, AcademicYear</code>. BuildLab will auto-crosscheck submitted PRNs against this roster.
+              Upload the official college enrollment list (.csv) containing columns: <code className="font-mono text-emerald-300">PRN, Name, RollNo, Department, AcademicYear</code>. BuildLab will auto-crosscheck submitted PRNs against this roster.
             </p>
 
             {rosterError && (
@@ -1576,7 +1483,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
               </div>
             )}
 
-            <div className="border-2 border-dashed border-[var(--border-subtle)] hover:border-indigo-500/50 rounded-2xl p-6 text-center space-y-3 bg-[var(--bg-surface-elevated)]/40 transition-colors">
+            <div className="border-2 border-dashed border-[var(--border-subtle)] hover:border-emerald-500/50 rounded-2xl p-6 text-center space-y-3 bg-[var(--bg-surface-elevated)]/40 transition-colors">
               <Upload size={28} className="mx-auto text-[var(--text-tertiary)]" />
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-[var(--text-pure)]">
@@ -1606,7 +1513,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
               <button
                 type="button"
                 onClick={handleDownloadSampleCSV}
-                className="text-[11px] text-indigo-400 hover:text-indigo-300 cursor-pointer flex items-center gap-1"
+                className="text-[11px] text-emerald-400 hover:text-emerald-300 cursor-pointer flex items-center gap-1"
               >
                 <Download size={12} />
                 <span>Download Sample Template</span>
@@ -1639,7 +1546,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                 <div>
                   <h3 className="font-bold text-base text-[var(--text-pure)] flex items-center gap-2">
                     {inspectingStudent.name}
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       {inspectingStudent.role}
                     </span>
                   </h3>
@@ -1665,7 +1572,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[var(--text-tertiary)] text-[11px]">PRN / ID:</span>
-                  <p className="font-mono font-semibold text-indigo-400 text-sm">
+                  <p className="font-mono font-semibold text-emerald-400 text-sm">
                     {inspectingStudent.prnNumber || "Not Provided"}
                   </p>
                 </div>
@@ -1691,9 +1598,9 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
             </div>
 
             {/* GitHub OAuth & Contribution Identity */}
-            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-2 text-xs">
+            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="font-mono text-[11px] text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                   <GitBranch size={13} />
                   Connected GitHub OAuth Evidence
                 </span>
@@ -1749,7 +1656,7 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
             {/* Reviewer / Decision Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
               <span className="text-[11px] text-[var(--text-tertiary)] font-mono">
-                Status: {inspectingStudent.verificationStatus}
+                Status: {getVerificationStatusLabel(inspectingStudent.verificationStatus)}
               </span>
 
               <div className="flex items-center gap-2">
@@ -1793,22 +1700,22 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
         </div>
       )}
 
-      {/* VERIFICATION AUDIT TRAIL MODAL */}
+      {/* ADMIN ACTIVITY LOG */}
       {isAuditModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col space-y-4 shadow-2xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                   <History size={16} />
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-[var(--text-pure)]">
-                    Campus Verification Audit Trail
+                    Admin activity log
                   </h3>
                   <p className="text-[11px] text-[var(--text-secondary)]">
-                    Tamper-evident log of all student verification approvals, rejections, and batch decisions.
+                    Verification decisions and administrative role changes.
                   </p>
                 </div>
               </div>
@@ -1837,16 +1744,21 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
               {isLoadingAudit ? (
                 <div className="p-12 text-center text-xs text-[var(--text-tertiary)]">
-                  <RefreshCw size={16} className="animate-spin mx-auto mb-2 text-indigo-400" />
+                  <RefreshCw size={16} className="animate-spin mx-auto mb-2 text-emerald-400" />
                   Loading audit log…
+                </div>
+              ) : auditError ? (
+                <div role="alert" className="p-8 text-center text-sm text-rose-300">
+                  {auditError}
                 </div>
               ) : auditEvents.length === 0 ? (
                 <div className="p-12 text-center text-xs text-[var(--text-tertiary)]">
-                  No verification audit events recorded yet.
+                  No admin activity recorded yet.
                 </div>
               ) : (
                 auditEvents.map((evt) => {
                   const isApproved = evt.action.includes("APPROVED");
+                  const isRoleChange = evt.action === "ROLE_CHANGED";
                   return (
                     <div
                       key={evt.id}
@@ -1856,21 +1768,29 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full ${
-                              isApproved
+                              isRoleChange
+                                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                                : isApproved
                                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                             }`}
                           >
-                            {evt.action}
+                            {isRoleChange ? "ROLE CHANGED" : evt.action}
                           </span>
                           <span className="font-semibold text-[var(--text-pure)]">
-                            {evt.metadata?.studentName || `${evt.metadata?.studentCount || 1} student(s)`}
+                            {isRoleChange
+                              ? evt.metadata?.targetUserName || "Account role updated"
+                              : evt.metadata?.studentName || `${evt.metadata?.studentCount || 1} student(s)`}
                           </span>
-                          {evt.metadata?.prnNumber && (
-                            <span className="font-mono text-indigo-400 text-[11px]">
+                          {isRoleChange ? (
+                            <span className="text-[11px] text-[var(--text-secondary)]">
+                              {evt.metadata?.previousRole || "unknown"} → {evt.metadata?.newRole || "unknown"}
+                            </span>
+                          ) : evt.metadata?.prnNumber ? (
+                            <span className="font-mono text-emerald-400 text-[11px]">
                               ({evt.metadata.prnNumber})
                             </span>
-                          )}
+                          ) : null}
                         </div>
 
                         <span className="text-[11px] font-mono text-[var(--text-tertiary)]">
@@ -1880,10 +1800,15 @@ export const AdminVerificationDesk: React.FC<AdminVerificationDeskProps> = ({
 
                       <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
                         <span>
-                          Reviewed by: <strong className="text-[var(--text-pure)]">{evt.metadata?.reviewedBy || "Campus Admin"}</strong>
+                          {isRoleChange ? "Changed by: " : "Reviewed by: "}
+                          <strong className="text-[var(--text-pure)]">
+                            {isRoleChange
+                              ? evt.metadata?.adminName || "Platform admin"
+                              : evt.metadata?.reviewedBy || "Campus Admin"}
+                          </strong>
                         </span>
                         {evt.metadata?.reason && (
-                          <span className="text-rose-400 italic">
+                          <span className={isRoleChange ? "text-[var(--text-secondary)] italic" : "text-rose-400 italic"}>
                             Reason: {evt.metadata.reason}
                           </span>
                         )}
