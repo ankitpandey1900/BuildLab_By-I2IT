@@ -19,7 +19,18 @@ export default async function HomePage() {
     include: {
       owner: { select: { id: true, name: true, image: true, branchYear: true, emailVerified: true } },
       members: { include: { user: { select: { id: true, name: true, image: true } } } },
-      tasks: { orderBy: { createdAt: "desc" } },
+      tasks: { 
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          difficulty: true,
+          status: true,
+          role: true,
+          suggestedFiles: true,
+        },
+      },
       _count: { select: { members: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -37,6 +48,14 @@ export default async function HomePage() {
       linkedRole: t.role ?? undefined,
       tags: [],
       suggestedFiles: parseList(t.suggestedFiles),
+      assigneeId: t.assigneeId ?? undefined,
+      assignee: t.assignee
+        ? {
+            id: t.assignee.id,
+            name: t.assignee.name,
+            avatarUrl: t.assignee.image ?? undefined,
+          }
+        : undefined,
     }));
 
     const roleNames = parseList(project.teamNeeds);

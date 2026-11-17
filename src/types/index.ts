@@ -2,7 +2,20 @@ export type ProjectTrack = 'independent' | 'community_supported';
 export type ProjectMaturity = 'idea' | 'prototype' | 'active' | 'maintenance' | 'paused' | 'archived';
 export type SupportAppStatus = 'submitted' | 'under_review' | 'changes_requested' | 'approved' | 'declined' | 'deferred' | 'withdrawn';
 export type RoleCategory = 'ui_design' | 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'ai_ml' | 'devops' | 'database' | 'auth' | 'qa_testing' | 'docs_writer' | 'hardware_iot';
-export interface ProjectIssue { id: string; title: string; description: string; difficulty: 'beginner' | 'intermediate' | 'advanced'; status?: 'open' | 'claimed' | 'in_progress' | 'resolved'; category?: RoleCategory; linkedRole?: string; issueUrl?: string; tags: string[]; suggestedFiles?: string[]; }
+export interface ProjectIssue { 
+  id: string; 
+  title: string; 
+  description: string; 
+  difficulty: 'beginner' | 'intermediate' | 'advanced'; 
+  status?: 'open' | 'claimed' | 'in_progress' | 'resolved'; 
+  category?: RoleCategory; 
+  linkedRole?: string; 
+  issueUrl?: string; 
+  tags: string[]; 
+  suggestedFiles?: string[];
+  assigneeId?: string;
+  assignee?: { id: string; name: string; avatarUrl?: string };
+}
 export interface OpenRole { role: string; category?: RoleCategory; count: number; description: string; lookingForSkills?: string[]; problems?: ProjectIssue[]; }
 export interface FirstIssue { id: string; title: string; difficulty: 'beginner' | 'intermediate'; issueUrl?: string; tags: string[]; }
 export interface SupportApplication { id: string; status: SupportAppStatus; problem: string; targetAudience: string; requestedSupport: string[]; risksAndMitigations: string; nextMilestone: string; submittedAt: string; reviewerNotes?: string; reviewedBy?: string; decisionDate?: string; }

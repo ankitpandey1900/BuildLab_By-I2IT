@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Project, ProjectReadme, StudentProfile } from '../types';
+import { Project, ProjectReadme, StudentProfile, CollaborationRequest } from '../types';
 import { 
   ArrowLeft, 
   ExternalLink, 
@@ -36,34 +36,52 @@ import { fetchReadmeFromGithub, readUploadedFileAsText, parseReadmeMarkdown } fr
 interface ProjectDetailProps {
   project: Project;
   currentUser?: StudentProfile;
+  userRequests?: CollaborationRequest[];
   onBack: () => void;
   onRequestCollab: (project: Project, role?: string, problemTitle?: string) => void;
   onApplySupport: (project: Project) => void;
   onRequestHandover: (project: Project) => void;
+  onAcceptHandover?: (projectId: string, newOwnerId: string) => Promise<void>;
   onUpdateReadme?: (project: Project, updatedReadme: ProjectReadme) => void;
   onUpdateProject?: (projectId: string, updateData: Partial<Project>) => Promise<void>;
   onArchiveProject?: (projectId: string) => Promise<void>;
   onCreateTask?: (projectId: string, task: { title: string; description: string; difficulty: 'beginner' | 'intermediate' | 'advanced'; role?: string; suggestedFiles?: string[] }) => Promise<void>;
   onUpdateTaskStatus?: (projectId: string, taskId: string, newStatus: 'open' | 'in_progress' | 'resolved') => Promise<void>;
+  onAssignTask?: (projectId: string, taskId: string, assigneeId: string) => Promise<void>;
   onOpenMentorChat?: (project: Project) => void;
 }
 
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
   currentUser,
+  userRequests = [],
   onBack,
   onRequestCollab,
   onApplySupport,
   onRequestHandover,
+  onAcceptHandover,
   onUpdateReadme,
   onUpdateProject,
   onArchiveProject,
   onCreateTask,
   onUpdateTaskStatus,
+  onAssignTask,
   onOpenMentorChat
 }) => {
   const isOwner = currentUser?.id === project.owner.id || currentUser?.username === project.owner.username;
-  const isMaintainer = isOwner || Boolean(project.members?.some(m => m.userId === currentUser?.id && m.role === 'maintainer'));
+  const isMember = Boolean(project.members?.some(m => m.userId === currentUser?.id));
+  const isMaintainer = isOwner || Boolean(project.members?.some(m => m.userId === currentUser?.id && m.role?.trim().toLowerCase() === 'maintainer'));
+
+  const maintainerMembers = (project.members || []).filter(
+    (m) => m.role?.trim().toLowerCase() === 'maintainer' && m.userId !== project.owner.id
+  );
+
+  const assignableMembers = [
+    { id: project.owner.id, name: `${project.owner.name} (Owner)` },
+    ...(project.members || [])
+      .filter((m) => m.userId !== project.owner.id)
+      .map((m) => ({ id: m.userId, name: `${m.user?.name || 'Member'} (${m.role})` })),
+  ];
 
   const [activeTab, setActiveTab] = useState<'roles' | 'readme' | 'setup' | 'support'>('roles');
   const [problemDifficultyFilter, setProblemDifficultyFilter] = useState<'all' | 'beginner' | 'intermediate'>('all');
@@ -77,6 +95,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [isHandoverOpen, setIsHandoverOpen] = useState(false);
+  const [selectedNewOwnerId, setSelectedNewOwnerId] = useState('');
+  const [isTransferringHandover, setIsTransferringHandover] = useState(false);
+  const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);
 
   // Edit form state
   const [editName, setEditName] = useState(project.name);
@@ -397,12 +419,14 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                       <span>Add Task</span>
                     </button>
                   )}
-                  <button 
-                    className="btn btn-secondary btn-sm text-[11px] cursor-pointer"
-                    onClick={() => onRequestCollab(project)}
-                  >
-                    Pitch a custom role
-                  </button>
+                  {!isOwner && !isMember && (
+                    <button 
+                      className="btn btn-secondary btn-sm text-[11px] cursor-pointer"
+                      onClick={() => onRequestCollab(project)}
+                    >
+                      Pitch a custom role
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -431,7 +455,12 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 </div>
               ) : (
                 <div className="space-y-4 pt-1">
-                  {project.openRoles.map((role, idx) => (
+                  {project.openRoles.map((role, idx) => {
+                    const existingRoleApp = userRequests?.find(
+                      (r) => r.projectId === project.id && r.role.trim().toLowerCase() === role.role.trim().toLowerCase()
+                    );
+
+                    return (
                     <div 
                       key={idx}
                       className="p-4 sm:p-5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] transition-all flex flex-col justify-between gap-3 shadow-2xs"
@@ -450,12 +479,36 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                             </span>
                           </div>
 
-                          <button 
-                            className="btn btn-secondary btn-sm text-xs shrink-0 self-start sm:self-auto cursor-pointer"
-                            onClick={() => onRequestCollab(project, role.role)}
-                          >
-                            Apply for role
-                          </button>
+                          {isOwner ? (
+                            <span className="text-[11px] font-mono text-[var(--text-tertiary)] bg-[var(--bg-surface)] px-2.5 py-1 rounded border border-[var(--border-subtle)]">
+                              Owner
+                            </span>
+                          ) : isMember ? (
+                            <span className="text-[11px] font-mono text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/25">
+                              Joined
+                            </span>
+                          ) : existingRoleApp ? (
+                            <span className={`text-[11px] font-mono px-2.5 py-1 rounded border ${
+                              existingRoleApp.status === 'accepted'
+                                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/25'
+                                : existingRoleApp.status === 'declined'
+                                ? 'text-rose-500 bg-rose-500/10 border-rose-500/25'
+                                : 'text-amber-500 bg-amber-500/10 border-amber-500/25'
+                            }`}>
+                              {existingRoleApp.status === 'accepted'
+                                ? 'Role Accepted'
+                                : existingRoleApp.status === 'declined'
+                                ? 'Application Declined'
+                                : 'Applied (Pending)'}
+                            </span>
+                          ) : (
+                            <button 
+                              className="btn btn-secondary btn-sm text-xs shrink-0 self-start sm:self-auto cursor-pointer"
+                              onClick={() => onRequestCollab(project, role.role)}
+                            >
+                              Apply for role
+                            </button>
+                          )}
                         </div>
 
                         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -521,16 +574,58 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                                       </div>
 
                                       <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
+                                        {prob.assigneeId && (
+                                          <span className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-blue-500/10 text-blue-500 border border-blue-500/25 flex items-center gap-1">
+                                            <Users size={10} />
+                                            <span>
+                                              {prob.assigneeId === currentUser?.id
+                                                ? 'Assigned to you'
+                                                : prob.assignee?.name ||
+                                                  (prob.assigneeId === project.owner.id
+                                                    ? project.owner.name
+                                                    : project.members?.find((m) => m.userId === prob.assigneeId)?.user?.name || 'Assigned')}
+                                            </span>
+                                          </span>
+                                        )}
+
                                         {isMaintainer ? (
-                                          <select
-                                            value={prob.status || 'open'}
-                                            onChange={(e) => onUpdateTaskStatus?.(project.id, prob.id, e.target.value as any)}
-                                            className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
-                                          >
-                                            <option value="open">Status: Open</option>
-                                            <option value="in_progress">Status: In Progress</option>
-                                            <option value="resolved">Status: Resolved</option>
-                                          </select>
+                                          <>
+                                            <select
+                                              value={prob.status || 'open'}
+                                              onChange={(e) => onUpdateTaskStatus?.(project.id, prob.id, e.target.value as any)}
+                                              className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
+                                            >
+                                              <option value="open">Status: Open</option>
+                                              <option value="in_progress">Status: In Progress</option>
+                                              <option value="resolved">Status: Resolved</option>
+                                            </select>
+
+                                            <select
+                                              value={prob.assigneeId || ''}
+                                              disabled={assigningTaskId === prob.id}
+                                              onChange={async (e) => {
+                                                const val = e.target.value;
+                                                if (val) {
+                                                  setAssigningTaskId(prob.id);
+                                                  try {
+                                                    await onAssignTask?.(project.id, prob.id, val);
+                                                  } finally {
+                                                    setAssigningTaskId(null);
+                                                  }
+                                                }
+                                              }}
+                                              className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
+                                            >
+                                              <option value="" disabled={Boolean(prob.assigneeId)}>
+                                                {prob.assigneeId ? 'Reassign...' : 'Assign to...'}
+                                              </option>
+                                              {assignableMembers.map((m) => (
+                                                <option key={m.id} value={m.id}>
+                                                  {m.name}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </>
                                         ) : (
                                           prob.status === 'in_progress' ? (
                                             <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-amber-500/10 text-amber-500 border border-amber-500/25">
@@ -585,7 +680,8 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                         )}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                   {(() => {
                     const standaloneTasks = (project.tasks || []).filter(
                       t => !project.openRoles.some(r => r.role.toLowerCase() === (t.linkedRole || '').toLowerCase())
@@ -616,16 +712,58 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                                   <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{task.description}</p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
+                                  {task.assigneeId && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-blue-500/10 text-blue-500 border border-blue-500/25 flex items-center gap-1">
+                                      <Users size={10} />
+                                      <span>
+                                        {task.assigneeId === currentUser?.id
+                                          ? 'Assigned to you'
+                                          : task.assignee?.name ||
+                                            (task.assigneeId === project.owner.id
+                                              ? project.owner.name
+                                              : project.members?.find((m) => m.userId === task.assigneeId)?.user?.name || 'Assigned')}
+                                      </span>
+                                    </span>
+                                  )}
+
                                   {isMaintainer ? (
-                                    <select
-                                      value={task.status || 'open'}
-                                      onChange={(e) => onUpdateTaskStatus?.(project.id, task.id, e.target.value as any)}
-                                      className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
-                                    >
-                                      <option value="open">Status: Open</option>
-                                      <option value="in_progress">Status: In Progress</option>
-                                      <option value="resolved">Status: Resolved</option>
-                                    </select>
+                                    <>
+                                      <select
+                                        value={task.status || 'open'}
+                                        onChange={(e) => onUpdateTaskStatus?.(project.id, task.id, e.target.value as any)}
+                                        className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
+                                      >
+                                        <option value="open">Status: Open</option>
+                                        <option value="in_progress">Status: In Progress</option>
+                                        <option value="resolved">Status: Resolved</option>
+                                      </select>
+
+                                      <select
+                                        value={task.assigneeId || ''}
+                                        disabled={assigningTaskId === task.id}
+                                        onChange={async (e) => {
+                                          const val = e.target.value;
+                                          if (val) {
+                                            setAssigningTaskId(task.id);
+                                            try {
+                                              await onAssignTask?.(project.id, task.id, val);
+                                            } finally {
+                                              setAssigningTaskId(null);
+                                            }
+                                          }
+                                        }}
+                                        className="text-[11px] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-primary)] cursor-pointer"
+                                      >
+                                        <option value="" disabled={Boolean(task.assigneeId)}>
+                                          {task.assigneeId ? 'Reassign...' : 'Assign to...'}
+                                        </option>
+                                        {assignableMembers.map((m) => (
+                                          <option key={m.id} value={m.id}>
+                                            {m.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </>
                                   ) : (
                                     task.status === 'in_progress' ? (
                                       <span className="text-[10.5px] px-2 py-0.5 rounded font-mono font-medium bg-amber-500/10 text-amber-500 border border-amber-500/25">In Progress</span>
@@ -1045,22 +1183,47 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
           )}
 
           {/* Project Continuity / Handover */}
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-4 text-xs shadow-sm">
+          <div className={`rounded-xl p-4 text-xs shadow-sm border ${
+            project.handoverFlagged 
+              ? 'bg-amber-500/10 border-amber-500/30' 
+              : 'bg-[var(--bg-surface)] border-[var(--border-subtle)]'
+          }`}>
             <div className="flex items-start gap-2 text-[var(--text-tertiary)] mb-2">
               <AlertCircle size={13} className="text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <span className="font-medium text-[var(--text-secondary)] block">Project Continuity</span>
+                <span className="font-medium text-[var(--text-secondary)] block">
+                  {project.handoverFlagged ? 'Maintainer Handover Requested' : 'Project Continuity'}
+                </span>
                 <span className="text-[11px] leading-relaxed">
-                  Is maintainer graduating or stepping down?
+                  {project.handoverFlagged
+                    ? (isOwner 
+                        ? 'Project flagged for maintainer transition. Transfer leadership to an eligible maintainer.'
+                        : 'Project flagged for maintainer handover. Awaiting owner review.')
+                    : 'Is maintainer graduating or stepping down?'}
                 </span>
               </div>
             </div>
-            <button 
-              className="btn btn-secondary btn-sm w-full text-xs mt-1 cursor-pointer"
-              onClick={() => onRequestHandover(project)}
-            >
-              Request maintainer handover
-            </button>
+
+            {isOwner ? (
+              <button 
+                className="btn btn-primary btn-sm w-full text-xs mt-1 cursor-pointer bg-amber-600 hover:bg-amber-500 border-amber-600 text-white font-medium flex items-center justify-center gap-1.5"
+                onClick={() => setIsHandoverOpen(true)}
+              >
+                <ShieldCheck size={13} />
+                <span>Transfer Ownership</span>
+              </button>
+            ) : project.handoverFlagged ? (
+              <div className="text-[10.5px] font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-2.5 py-1 text-center mt-1">
+                Flagged for Handover
+              </div>
+            ) : (
+              <button 
+                className="btn btn-secondary btn-sm w-full text-xs mt-1 cursor-pointer"
+                onClick={() => onRequestHandover(project)}
+              >
+                Request maintainer handover
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1375,6 +1538,84 @@ ${project.setupGuide || '# Clone repository\ngit clone ' + (project.repoUrl || '
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Handover Project Modal */}
+      {isHandoverOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl max-w-md w-full p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+              <div className="flex items-center gap-2 text-amber-500">
+                <ShieldCheck size={18} />
+                <h2 className="text-sm font-bold text-[var(--text-pure)]">Transfer Project Ownership</h2>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsHandoverOpen(false)} 
+                className="text-[var(--text-secondary)] hover:text-[var(--text-pure)] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Select an accepted maintainer to take over as the owner of <b>{project.name}</b>.
+              Your role will transition to <b>mentor</b>, and their role will become <b>lead</b>.
+            </p>
+
+            {maintainerMembers.length === 0 ? (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-500 text-xs">
+                No eligible maintainers found in this project. A member must have the role of <b>maintainer</b> before ownership can be transferred to them.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-[var(--text-secondary)] block">
+                  Designated Maintainer (New Owner)
+                </label>
+                <select
+                  value={selectedNewOwnerId}
+                  onChange={(e) => setSelectedNewOwnerId(e.target.value)}
+                  className="w-full text-xs bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] rounded-lg p-2.5 text-[var(--text-primary)] cursor-pointer outline-none"
+                >
+                  <option value="">Select a maintainer...</option>
+                  {maintainerMembers.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.user?.name || m.userId} ({m.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm cursor-pointer"
+                onClick={() => setIsHandoverOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!selectedNewOwnerId || isTransferringHandover}
+                className="btn btn-primary btn-sm bg-amber-600 hover:bg-amber-500 text-white border-amber-600 cursor-pointer disabled:opacity-50"
+                onClick={async () => {
+                  if (!selectedNewOwnerId) return;
+                  setIsTransferringHandover(true);
+                  try {
+                    await onAcceptHandover?.(project.id, selectedNewOwnerId);
+                    setIsHandoverOpen(false);
+                    setSelectedNewOwnerId('');
+                  } finally {
+                    setIsTransferringHandover(false);
+                  }
+                }}
+              >
+                {isTransferringHandover ? 'Transferring...' : 'Confirm Ownership Transfer'}
+              </button>
+            </div>
           </div>
         </div>
       )}

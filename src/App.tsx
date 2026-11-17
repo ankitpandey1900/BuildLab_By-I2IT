@@ -132,16 +132,24 @@ export const App: React.FC<AppProps> = ({
     setSelectedProject(newProject);
   };
 
-  // Submit Collab Pitch
-  const handleSubmitCollab = async (role: string, message: string, targetIssueTitle?: string) => {
+  // Submit Collab Pitch / Role Application
+  const handleSubmitCollab = async (role: string, message: string, targetIssueTitle?: string, weeklyHours?: number) => {
     if (!collabModalProject) return;
 
-    const response = await fetch('/api/collaboration-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: collabModalProject.id, role, message }) });
-    if (!response.ok) { const body = await response.json().catch(() => null); showToast(body?.message ?? 'Unable to send collaboration request.'); return; }
+    const response = await fetch(`/api/projects/${collabModalProject.id}/roles/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, message, targetIssueTitle, weeklyHours })
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      showToast(body?.message ?? 'Unable to send collaboration request.');
+      return;
+    }
     const saved = await response.json();
 
     const newReq: CollaborationRequest = {
-      id: saved.id,
+      id: saved.id ?? saved.application?.id ?? `req-${Date.now()}`,
       projectId: collabModalProject.id,
       projectName: collabModalProject.name,
       applicant: {
@@ -163,7 +171,7 @@ export const App: React.FC<AppProps> = ({
     setCollabModalProject(null);
     setCollabModalRole(undefined);
     setCollabModalProblem(undefined);
-    showToast(targetIssueTitle ? `Pitched solution for "${targetIssueTitle}".` : `Collaboration request sent for "${role}".`);
+    showToast(targetIssueTitle ? `Pitched solution for "${targetIssueTitle}".` : `Application submitted for "${role}"!`);
   };
 
   // Update Collab Status
@@ -286,6 +294,53 @@ export const App: React.FC<AppProps> = ({
       showToast(`Project flagged for handover. Maintainer notified via registered campus email.`);
     } catch {
       showToast('Network error requesting handover.');
+    }
+  };
+
+  // Complete Project Handover / Transfer Ownership
+  const handleAcceptHandover = async (projectId: string, newOwnerId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/handover/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newOwnerId }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        showToast(data?.message || 'Unable to complete project handover.');
+        return;
+      }
+      setProjects(prev => prev.map(p => {
+        if (p.id === projectId) {
+          const oldOwnerId = p.owner.id;
+          const newOwnerMember = p.members?.find(m => m.userId === newOwnerId);
+          const newOwnerUser = newOwnerMember?.user;
+          const updatedOwner = newOwnerUser ? {
+            ...p.owner,
+            id: newOwnerId,
+            name: newOwnerUser.name || p.owner.name,
+            avatarUrl: newOwnerUser.avatarUrl || p.owner.avatarUrl,
+          } : {
+            ...p.owner,
+            id: newOwnerId,
+          };
+          const updatedMembers = (p.members || []).map(m => {
+            if (m.userId === oldOwnerId) return { ...m, role: 'mentor' };
+            if (m.userId === newOwnerId) return { ...m, role: 'lead' };
+            return m;
+          });
+          return {
+            ...p,
+            owner: updatedOwner,
+            handoverFlagged: false,
+            members: updatedMembers,
+          };
+        }
+        return p;
+      }));
+      showToast(data?.message || 'Project ownership transferred successfully.');
+    } catch {
+      showToast('Network error transferring project ownership.');
     }
   };
 
@@ -454,6 +509,46 @@ export const App: React.FC<AppProps> = ({
     showToast(`Task marked as ${newStatus.replace('_', ' ')}.`);
   };
 
+  const handleAssignTask = async (projectId: string, taskId: string, assigneeId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/tasks/${taskId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigneeId }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        showToast(data?.message || 'Unable to assign task.');
+        return;
+      }
+      setProjects(prev => prev.map(p => {
+        if (p.id === projectId) {
+          const assigneeMember = p.members?.find(m => m.userId === assigneeId);
+          const assigneeUser = assigneeMember?.user || (p.owner.id === assigneeId ? { id: p.owner.id, name: p.owner.name, avatarUrl: p.owner.avatarUrl } : undefined);
+          const updateTask = (t: ProjectIssue): ProjectIssue =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  status: 'in_progress',
+                  assigneeId,
+                  assignee: assigneeUser ? { id: assigneeId, name: assigneeUser.name || 'Member', avatarUrl: assigneeUser.avatarUrl } : t.assignee,
+                }
+              : t;
+          const updatedTasks = (p.tasks || []).map(updateTask);
+          const updatedRoles = p.openRoles.map(r => ({
+            ...r,
+            problems: (r.problems || []).map(updateTask),
+          }));
+          return { ...p, tasks: updatedTasks, openRoles: updatedRoles };
+        }
+        return p;
+      }));
+      showToast('Task assigned successfully.');
+    } catch {
+      showToast('Network error assigning task.');
+    }
+  };
+
   const handleSignOut = async () => {
     await authClient.signOut();
     window.location.assign('/sign-in');
@@ -502,15 +597,18 @@ export const App: React.FC<AppProps> = ({
             <ProjectDetail
               project={activeSelectedProject}
               currentUser={currentUser}
+              userRequests={collabRequests}
               onBack={() => setSelectedProject(null)}
               onRequestCollab={handleOpenCollabModal}
               onApplySupport={handleApplySupport}
               onRequestHandover={handleRequestHandover}
+              onAcceptHandover={handleAcceptHandover}
               onUpdateReadme={handleUpdateReadme}
               onUpdateProject={handleUpdateProject}
               onArchiveProject={handleArchiveProject}
               onCreateTask={handleCreateTask}
               onUpdateTaskStatus={handleUpdateTaskStatus}
+              onAssignTask={handleAssignTask}
               onOpenMentorChat={(p) => setMentorChatProject(p)}
             />
           ) : (
