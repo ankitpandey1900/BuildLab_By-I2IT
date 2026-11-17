@@ -8,7 +8,7 @@ interface CollaborationModalProps {
   initialRole?: string;
   initialProblemTitle?: string;
   onClose: () => void;
-  onSubmit: (role: string, message: string, targetIssueTitle?: string) => void;
+  onSubmit: (role: string, message: string, targetIssueTitle?: string, weeklyHours?: number) => void | Promise<any>;
 }
 
 export const CollaborationModal: React.FC<CollaborationModalProps> = ({
@@ -61,12 +61,18 @@ export const CollaborationModal: React.FC<CollaborationModalProps> = ({
     return project.openRoles[0]?.role || 'General Contributor';
   });
 
-  const [message, setMessage] = useState(
-    initialProblemTitle 
-      ? `Hi @${project.owner.username}, I would like to tackle the task: "${initialProblemTitle}". Here is my proposed technical approach:`
-      : ''
-  );
+  const [message, setMessage] = useState(() => {
+    if (initialProblemTitle) {
+      return `Hi @${project.owner.username}, I would like to tackle the task: "${initialProblemTitle}". Here is my proposed technical approach:`;
+    }
+    if (initialRole) {
+      return `Hi @${project.owner.username}, I would like to apply for the "${initialRole}" role on ${project.name}. Here is my background and how I can contribute:`;
+    }
+    return '';
+  });
   const [hoursPerWeek, setHoursPerWeek] = useState(currentUser.weeklyAvailabilityHours.toString());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Current claimed problem details (if one is actively locked in)
   const activeClaimedProblem = useMemo(() => {
@@ -74,12 +80,42 @@ export const CollaborationModal: React.FC<CollaborationModalProps> = ({
     return allProjectProblems.find(p => p.title === targetProblem) || null;
   }, [allProjectProblems, targetProblem]);
 
+  // Current matched open role object
+  const activeOpenRoleObj = useMemo(() => {
+    return project.openRoles.find(r => r.role.toLowerCase() === selectedRole.toLowerCase()) || null;
+  }, [project.openRoles, selectedRole]);
+
   const isLockedTaskMode = Boolean(targetProblem && !isChangingTask);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
-    onSubmit(selectedRole, message, targetProblem || undefined);
+    setFormError(null);
+
+    const trimmed = message.trim();
+    if (trimmed.length < 20) {
+      setFormError('Please provide at least 20 characters in your pitch.');
+      return;
+    }
+
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length < 4) {
+      setFormError('Please provide a more descriptive collaboration message (at least 4 words).');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit(
+        selectedRole,
+        trimmed,
+        targetProblem || undefined,
+        Number(hoursPerWeek) || undefined
+      );
+    } catch (err: any) {
+      setFormError(err?.message || 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSelectProblemChange = (val: string) => {
@@ -106,12 +142,22 @@ export const CollaborationModal: React.FC<CollaborationModalProps> = ({
         <div className="modal-gh-header">
           <div className="flex flex-col">
             <div className="modal-gh-title flex items-center gap-2">
-              <span>{isLockedTaskMode ? 'Claim Task & Pitch Solution' : 'Request to collaborate'}</span>
-              {isLockedTaskMode && (
+              <span>
+                {isLockedTaskMode
+                  ? 'Claim Task & Pitch Solution'
+                  : initialRole
+                  ? `Apply for ${selectedRole} Role`
+                  : 'Request to collaborate'}
+              </span>
+              {isLockedTaskMode ? (
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/25 font-mono font-medium">
                   Focused Task Claim
                 </span>
-              )}
+              ) : initialRole ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 font-mono font-medium">
+                  Role Application
+                </span>
+              ) : null}
             </div>
             <span className="text-xs text-[var(--text-tertiary)] mt-0.5 font-mono">
               Target project: {project.name}
@@ -249,6 +295,29 @@ export const CollaborationModal: React.FC<CollaborationModalProps> = ({
                     <option value="Technical Mentor">Technical Mentor</option>
                   </select>
                 </div>
+                {activeOpenRoleObj && (
+                  <div className="rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] p-3 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] font-mono">
+                        Role Overview
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 font-mono font-medium">
+                        {activeOpenRoleObj.count} spot{activeOpenRoleObj.count > 1 ? 's' : ''} open
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                      {activeOpenRoleObj.description}
+                    </p>
+                    {activeOpenRoleObj.lookingForSkills && activeOpenRoleObj.lookingForSkills.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-[var(--border-subtle)]/70 text-[11px]">
+                        <span className="text-[11px] text-[var(--text-tertiary)] font-medium">Looking for:</span>
+                        {activeOpenRoleObj.lookingForSkills.map((sk, sIdx) => (
+                          <span key={sIdx} className="badge-tag">{sk}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -282,22 +351,48 @@ export const CollaborationModal: React.FC<CollaborationModalProps> = ({
                 onChange={(e) => setMessage(e.target.value)}
                 required
               />
+              <div className="flex items-center justify-between text-[11px] text-[var(--text-tertiary)] pt-1">
+                <span>
+                  {message.trim().length < 20
+                    ? `${20 - message.trim().length} more characters needed`
+                    : message.trim().split(/\s+/).filter(Boolean).length < 4
+                    ? 'Please enter at least 4 words'
+                    : '✓ Ready to submit'}
+                </span>
+                <span className="font-mono">{message.length}/2000</span>
+              </div>
             </div>
+
+            {formError && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs">
+                {formError}
+              </div>
+            )}
           </div>
 
           <div className="modal-gh-footer">
-            <button type="button" className="btn btn-secondary btn-sm cursor-pointer" onClick={onClose}>
+            <button type="button" className="btn btn-secondary btn-sm cursor-pointer" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </button>
             <button 
               type="submit" 
               className="btn btn-primary btn-sm flex items-center gap-1.5 cursor-pointer" 
-              disabled={!message.trim()}
+              disabled={isSubmitting || message.trim().length < 20}
             >
-              {isLockedTaskMode ? (
+              {isSubmitting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : isLockedTaskMode ? (
                 <>
                   <CheckCircle2 size={13} />
                   <span>Submit Task Pitch</span>
+                </>
+              ) : initialRole ? (
+                <>
+                  <Send size={13} />
+                  <span>Apply for Role</span>
                 </>
               ) : (
                 <>

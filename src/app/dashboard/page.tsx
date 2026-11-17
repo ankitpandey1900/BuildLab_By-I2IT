@@ -168,7 +168,18 @@ export default async function DashboardPage() {
     include: {
       owner: { select: { id: true, name: true, image: true, branchYear: true, emailVerified: true } },
       members: { include: { user: { select: { id: true, name: true, image: true } } } },
-      tasks: { orderBy: { createdAt: "desc" } },
+      tasks: { 
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          difficulty: true,
+          status: true,
+          role: true,
+          suggestedFiles: true,
+        },
+      },
       supportApplication: true,
       _count: { select: { members: true, verifiedContributions: true } },
     },
@@ -187,6 +198,14 @@ export default async function DashboardPage() {
       linkedRole: t.role ?? undefined,
       tags: [],
       suggestedFiles: parseList(t.suggestedFiles),
+      assigneeId: t.assigneeId ?? undefined,
+      assignee: t.assignee
+        ? {
+            id: t.assignee.id,
+            name: t.assignee.name,
+            avatarUrl: t.assignee.image ?? undefined,
+          }
+        : undefined,
     }));
 
     const roleNames = parseList(project.teamNeeds);
