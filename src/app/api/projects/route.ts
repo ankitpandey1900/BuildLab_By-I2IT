@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id || (await prisma.user.findFirst({ where: { email: { contains: "aarav" } } }))?.id || (await prisma.user.findFirst())?.id;
+  const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ message: "Sign in required." }, { status: 401 });
   const result = projectSchema.safeParse(await request.json());
   if (!result.success) return NextResponse.json({ message: "Invalid project details." }, { status: 400 });

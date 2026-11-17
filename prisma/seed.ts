@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -130,15 +132,15 @@ const seedUsers: SeedUserData[] = [
     name: "Vikram Shinde",
     email: "vikram.shinde@gmail.com",
     role: "student",
-    bio: "Engineering student interested in CAD tools and embedded hardware interfaces.",
-    branchYear: "Mechanical Engineering · 2026",
-    department: "Mechanical Engineering",
+    bio: "Engineering student interested in embedded hardware interfaces.",
+    branchYear: "Electronics & Telecommunication · 2026",
+    department: "Electronics & Telecommunication",
     academicYear: "Third Year (TE)",
     prnNumber: "72299999X",
     rollNumber: "99999",
     // REJECTED: Populates Admin Verification Desk "Rejected" queue with audit justification
     verificationStatus: "REJECTED",
-    rejectionReason: "Mechanical Engineering branch is not offered at I2IT. Please submit with valid CE, IT, or E&TC roll number.",
+    rejectionReason: "The submitted PRN could not be matched to the official roster. Please verify your E&TC enrollment details.",
     skills: ["Python", "MATLAB", "Arduino"],
     interests: ["Robotics", "CAD"],
     availability: 5,
@@ -164,6 +166,147 @@ const seedUsers: SeedUserData[] = [
     image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
   }
 ];
+
+interface DemoLoginProfile {
+  role: "student" | "faculty" | "admin";
+  name: string;
+  email: string;
+  password: string;
+  verificationStatus: "UNVERIFIED" | "VERIFIED";
+}
+
+const demoLoginRoleDefinitions = [
+  { prefix: "DEMO_STUDENT", role: "student", verificationStatus: "UNVERIFIED" },
+  { prefix: "DEMO_MENTOR", role: "faculty", verificationStatus: "VERIFIED" },
+  { prefix: "DEMO_ADMIN", role: "admin", verificationStatus: "VERIFIED" },
+] as const;
+
+function getDemoLoginProfiles(): DemoLoginProfile[] {
+  const enabled = process.env.DEMO_LOGIN_ENABLED?.trim().toLowerCase() === "true";
+  const configuredValues = demoLoginRoleDefinitions.flatMap(({ prefix }) => [
+    process.env[`${prefix}_NAME`],
+    process.env[`${prefix}_EMAIL`],
+    process.env[`${prefix}_PASSWORD`],
+  ]);
+  const hasConfiguredValues = configuredValues.some((value) => Boolean(value?.trim()));
+
+  if (!enabled) {
+    if (hasConfiguredValues) {
+      throw new Error("Set DEMO_LOGIN_ENABLED=true to seed the configured role-demo profiles.");
+    }
+    console.info("Role-demo profiles were not configured; no login accounts were created.");
+    return [];
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Role-demo profiles may only be seeded outside production.");
+  }
+
+  const missing = demoLoginRoleDefinitions.flatMap(({ prefix }) =>
+    [`${prefix}_NAME`, `${prefix}_EMAIL`, `${prefix}_PASSWORD`].filter(
+      (key) => !process.env[key]?.trim()
+    )
+  );
+  if (missing.length > 0) {
+    throw new Error(`Missing required role-demo environment variables: ${missing.join(", ")}.`);
+  }
+
+  return demoLoginRoleDefinitions.map(({ prefix, role, verificationStatus }) => {
+    const name = process.env[`${prefix}_NAME`]!.trim();
+    const email = process.env[`${prefix}_EMAIL`]!.trim().toLowerCase();
+    const password = process.env[`${prefix}_PASSWORD`]!;
+
+    if (name.length < 2 || name.length > 70) {
+      throw new Error(`${prefix}_NAME must be between 2 and 70 characters.`);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error(`${prefix}_EMAIL must be a valid email address.`);
+    }
+    if (password.length < 12 || password.length > 128) {
+      throw new Error(`${prefix}_PASSWORD must be between 12 and 128 characters.`);
+    }
+
+    return { role, name, email, password, verificationStatus };
+  });
+}
+
+async function seedDemoLoginProfiles() {
+  const profiles = getDemoLoginProfiles();
+
+  for (const profile of profiles) {
+    if (seedUsers.some((user) => user.email.toLowerCase() === profile.email)) {
+      throw new Error(
+        `A role-demo email matches a fixed fixture profile. Configure a separate email for the ${profile.role} demo account.`
+      );
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: profile.email },
+    });
+    const password = await hashPassword(profile.password);
+
+    if (existingUser) {
+      const credentialAccount = await prisma.account.findUnique({
+        where: {
+          providerId_accountId: {
+            providerId: "credential",
+            accountId: existingUser.id,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!credentialAccount || existingUser.role !== profile.role) {
+        throw new Error(
+          `The configured ${profile.role} demo email is already used by a different account. Choose a dedicated demo email.`
+        );
+      }
+
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name: profile.name,
+            emailVerified: true,
+            verificationStatus: profile.verificationStatus,
+          },
+        }),
+        prisma.account.update({
+          where: { id: credentialAccount.id },
+          data: { password },
+        }),
+        prisma.session.deleteMany({ where: { userId: existingUser.id } }),
+      ]);
+    } else {
+      const userId = randomUUID();
+      await prisma.$transaction(async (transaction) => {
+        await transaction.user.create({
+          data: {
+            id: userId,
+            name: profile.name,
+            email: profile.email,
+            emailVerified: true,
+            role: profile.role,
+            verificationStatus: profile.verificationStatus,
+          },
+        });
+        await transaction.account.create({
+          data: {
+            id: randomUUID(),
+            accountId: userId,
+            providerId: "credential",
+            userId,
+            password,
+          },
+        });
+      });
+    }
+
+    console.info(`Role-demo login profile ready (${profile.role}).`);
+  }
+
+  return profiles.length;
+}
 
 async function getOrCreateUser(data: SeedUserData) {
   let user = await prisma.user.findFirst({
@@ -262,6 +405,8 @@ async function main() {
   if (!aarav || !priya || !rohan || !ananya || !profJoshi || !vikram || !adminUser) {
     throw new Error("Failed to initialize all required demo accounts.");
   }
+
+  const roleDemoProfilesCount = await seedDemoLoginProfiles();
 
   // Set Dr. Joshi as the verifier for verified students
   await prisma.user.updateMany({
@@ -665,8 +810,8 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
     });
   }
 
-  // 8. Seed Cryptographically Verified Contributions (Heatmap & Portfolio Proof)
-  console.log("🔏 Seeding verified GitHub receipts & contribution proofs...");
+  // 8. Seed clearly labeled, non-verified contribution samples for MVP previews.
+  console.log("🧪 Seeding demo contribution samples...");
 
   const contributionsData = [
     {
@@ -675,23 +820,25 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
       type: "pr_merged",
       title: "PR #12: Optimize spatial query indexing for bus route coordinates",
       repo: "college-dev/campus-ride-telemetry",
-      sha: "7f9b1c4e2a10b42c98d7",
-      externalUrl: "https://github.com/college-dev/campus-ride-telemetry/pull/12",
-      deliveryId: "wh-del-101",
+      source: "seed_demo",
+      sha: null,
+      externalUrl: null,
+      deliveryId: null,
       details: "Added PostGIS spatial bounding-box indexing and reduced GPS query latency by 64% during peak commute hours.",
-      verifiedByGitHub: true
+      verifiedByGitHub: false
     },
     {
       userId: aarav.id,
       projectId: shuttleProject.id,
-      type: "commit",
+      type: "commit_pushed",
       title: "Wire Leaflet map component with realtime vehicle marker updates",
       repo: "college-dev/campus-ride-telemetry",
-      sha: "e4d82a17f9c2019b883a",
-      externalUrl: "https://github.com/college-dev/campus-ride-telemetry/commit/e4d82a17",
-      deliveryId: "wh-del-102",
+      source: "seed_demo",
+      sha: null,
+      externalUrl: null,
+      deliveryId: null,
       details: "Smooth coordinate interpolation between incoming MQTT telemetry frames to eliminate bus map jumping.",
-      verifiedByGitHub: true
+      verifiedByGitHub: false
     },
     {
       userId: aarav.id,
@@ -699,11 +846,12 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
       type: "issue_resolved",
       title: "Fix CSRF header mismatch on student slot reservation API",
       repo: "aarav-sharma/lab-scheduler-iot",
-      sha: "99b2c3d4e5f6071829aa",
-      externalUrl: "https://github.com/aarav-sharma/lab-scheduler-iot/commit/99b2c3d4",
-      deliveryId: "wh-del-103",
+      source: "seed_demo",
+      sha: null,
+      externalUrl: null,
+      deliveryId: null,
       details: "Standardized SameSite cookies and bearer token authorization across lab gateway microservices.",
-      verifiedByGitHub: true
+      verifiedByGitHub: false
     },
     {
       userId: rohan.id,
@@ -711,10 +859,11 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
       type: "pr_merged",
       title: "PR #18: Configure SIM800L cellular fallback for offline transit routes",
       repo: "college-dev/campus-ride-telemetry",
-      sha: "b8c3d2e1f4095a6b7c8d",
-      externalUrl: "https://github.com/college-dev/campus-ride-telemetry/pull/18",
+      source: "seed_demo",
+      sha: null,
+      externalUrl: null,
       details: "Automatic fallback to SMS payload if 4G/GPRS data signal drops in basement campus terminals.",
-      verifiedByGitHub: true
+      verifiedByGitHub: false
     },
     {
       userId: priya.id,
@@ -722,10 +871,11 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
       type: "pr_merged",
       title: "PR #24: Implement semantic embedding pipeline for SPPU past question papers",
       repo: "college-dev/open-syllabus-i2it",
-      sha: "3a8f09d1e2b3c4d5e6f7",
-      externalUrl: "https://github.com/college-dev/open-syllabus-i2it/pull/24",
+      source: "seed_demo",
+      sha: null,
+      externalUrl: null,
       details: "Chunked 1,400+ previous year exam questions with all-MiniLM-L6-v2 embeddings for instant semantic search.",
-      verifiedByGitHub: true
+      verifiedByGitHub: false
     }
   ];
 
@@ -735,6 +885,84 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
     });
     if (!existing) {
       await prisma.verifiedContribution.create({ data: c });
+    } else {
+      await prisma.verifiedContribution.update({
+        where: { id: existing.id },
+        data: c,
+      });
+    }
+  }
+
+  const demoCommitSeries = [
+    {
+      userId: aarav.id,
+      projectId: shuttleProject.id,
+      repo: "college-dev/campus-ride-telemetry",
+      monthlyCounts: [1, 2, 1, 3, 2, 2, 4, 2, 3, 2, 3, 4],
+    },
+    {
+      userId: priya.id,
+      projectId: syllabusProject.id,
+      repo: "college-dev/open-syllabus-i2it",
+      monthlyCounts: [1, 1, 2, 2, 3, 2, 3, 2, 2, 4, 3, 3],
+    },
+    {
+      userId: rohan.id,
+      projectId: shuttleProject.id,
+      repo: "college-dev/campus-ride-telemetry",
+      monthlyCounts: [1, 2, 1, 2, 2, 3, 2, 3, 2, 3, 4, 3],
+    },
+  ];
+  const seedRunDate = new Date();
+
+  for (const [seriesIndex, series] of demoCommitSeries.entries()) {
+    for (const [monthIndex, commitsThisMonth] of series.monthlyCounts.entries()) {
+      const monthDate = new Date(
+        Date.UTC(seedRunDate.getUTCFullYear(), seedRunDate.getUTCMonth() - 11 + monthIndex, 1)
+      );
+      const monthKey = monthDate.toISOString().slice(0, 7);
+      const daysInMonth = new Date(
+        Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 1, 0)
+      ).getUTCDate();
+      const lastAvailableDay =
+        monthIndex === series.monthlyCounts.length - 1
+          ? Math.min(daysInMonth, seedRunDate.getUTCDate())
+          : daysInMonth;
+
+      for (let commitIndex = 0; commitIndex < commitsThisMonth; commitIndex++) {
+        const title = `MVP demo commit ${monthKey} #${commitIndex + 1}`;
+        const createdAt = new Date(
+          Date.UTC(
+            monthDate.getUTCFullYear(),
+            monthDate.getUTCMonth(),
+            1 + ((seriesIndex * 7 + monthIndex * 3 + commitIndex * 5) % lastAvailableDay),
+            12
+          )
+        );
+        const data = {
+          userId: series.userId,
+          projectId: series.projectId,
+          type: "commit_pushed",
+          title,
+          repo: series.repo,
+          source: "seed_demo",
+          details: "Seeded MVP sample activity; this is not a verified GitHub webhook.",
+          verifiedByGitHub: false,
+          createdAt,
+        };
+        const existing = await prisma.verifiedContribution.findFirst({
+          where: { userId: series.userId, title },
+        });
+
+        if (existing) {
+          await prisma.verifiedContribution.update({
+            where: { id: existing.id },
+            data,
+          });
+        } else {
+          await prisma.verifiedContribution.create({ data });
+        }
+      }
     }
   }
 
@@ -808,6 +1036,7 @@ Semantic search and question paper retrieval system for SPPU engineering syllabu
   });
 
   console.log("\n✨ GitHub-first campus community demo data seeded successfully (ADR-0002)!");
+  console.log(`Environment-configured role-demo profiles: ${roleDemoProfilesCount}`);
   console.log("---------------------------------------------------------------------------------");
   console.log(`Demo Account 1: @aarav-sharma (Student Maintainer · PRN: 72234012A - Verified)`);
   console.log(`Demo Account 2: @priya-patel (Lead AI Maintainer · PRN: 72134045B - Verified)`);
