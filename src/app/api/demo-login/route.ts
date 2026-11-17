@@ -14,10 +14,7 @@ function isDemoRole(value: unknown): value is DemoRole {
 }
 
 export async function POST(request: Request) {
-  if (
-    process.env.NODE_ENV === "production" ||
-    process.env.DEMO_LOGIN_ENABLED?.trim().toLowerCase() !== "true"
-  ) {
+  if (process.env.DEMO_LOGIN_ENABLED?.trim().toLowerCase() !== "true") {
     return NextResponse.json({ error: "Demo sign-in is unavailable." }, { status: 404 });
   }
 

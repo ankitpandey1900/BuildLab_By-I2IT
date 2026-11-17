@@ -66,7 +66,7 @@ export const teamMembers: TeamMember[] = [
     image: "/Dr-Sonali-Sagar-Patil.webp",
     professionalMemberships: ["ISTE"],
     email: "sonalip@isquareit.edu.in",
-    github: "https://github.com",
+    github: "https://github.com/sonalipVU",
     linkedin: "https://www.linkedin.com/in/dr-sonali-s-patil-27121335a/",
   },
   {
